@@ -1,10 +1,11 @@
 import SwiftUI
 import Domain
 
-/// Editable tags view showing SKILL.md tags (purple) + user tags (cyan)
+/// Editable tags: file tags (purple) + custom tags (cyan) + add/assign
 /// Matches prototype page 07-manage-tags.html
 struct EditableTagsView: View {
-    @Bindable var tags: SkillTags
+    let skill: Skill
+    var tags: SkillTags
 
     @State private var isAddingTag = false
     @State private var newTagText = ""
@@ -13,12 +14,12 @@ struct EditableTagsView: View {
         VStack(alignment: .leading, spacing: 8) {
             FlowLayout(spacing: 6) {
                 // Purple: SKILL.md tags (read-only)
-                ForEach(tags.fileTags, id: \.self) { tag in
+                ForEach(skill.tags, id: \.self) { tag in
                     autoTagChip(tag)
                 }
 
                 // Cyan: user-added tags (removable)
-                ForEach(Array(tags.customTags).sorted(), id: \.self) { tag in
+                ForEach(Array(tags.customTags(for: skill.id)).sorted(), id: \.self) { tag in
                     userTagChip(tag)
                 }
 
@@ -57,7 +58,7 @@ struct EditableTagsView: View {
                 .fontWeight(.medium)
 
             Button {
-                tags.removeCustomTag(tag)
+                tags.removeTag(tag, from: skill.id)
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 7, weight: .bold))
@@ -185,8 +186,8 @@ struct EditableTagsView: View {
 
     private func commitTag() {
         let tag = newTagText.trimmingCharacters(in: .whitespaces).lowercased()
-        if !tag.isEmpty && !tags.fileTags.contains(tag) {
-            tags.addCustomTag(tag)
+        if !tag.isEmpty && !skill.tags.contains(tag) {
+            tags.createTag(tag, for: skill.id)
         }
         newTagText = ""
         isAddingTag = false

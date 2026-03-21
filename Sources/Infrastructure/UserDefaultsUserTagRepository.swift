@@ -1,60 +1,67 @@
 import Foundation
 import Domain
 
-/// Infrastructure: Persists user-added tags in UserDefaults
-/// Synchronous reads — UserDefaults is fast, no actor needed
+/// Infrastructure: Persists user tags in UserDefaults
 public final class UserDefaultsUserTagRepository: UserTagRepository, @unchecked Sendable {
 
-    private static let storageKey = "skillsManager.userTags"
+    private static let assignmentsKey = "skillsManager.userTags"
+    private static let globalTagsKey = "skillsManager.globalTags"
 
     public init() {}
 
-    public func tags(for skillKey: String) -> Set<String> {
-        loadAll()[skillKey] ?? []
-    }
-
-    public func addTag(_ tag: String, to skillKey: String) {
-        let normalized = tag.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !normalized.isEmpty else { return }
-        var all = loadAll()
-        all[skillKey, default: []].insert(normalized)
-        save(all)
-    }
-
-    public func removeTag(_ tag: String, from skillKey: String) {
-        var all = loadAll()
-        all[skillKey]?.remove(tag)
-        if all[skillKey]?.isEmpty == true {
-            all.removeValue(forKey: skillKey)
+    public func allTags() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: Self.globalTagsKey),
+              let decoded = try? JSONDecoder().decode([String].self, from: data) else {
+            return []
         }
-        save(all)
+        return Set(decoded)
     }
 
-    public func allTagCounts() -> [String: Int] {
-        let all = loadAll()
-        var counts: [String: Int] = [:]
-        for tags in all.values {
-            for tag in tags {
-                counts[tag, default: 0] += 1
-            }
+    public func tags(for skillId: String) -> Set<String> {
+        loadAssignments()[skillId] ?? []
+    }
+
+    public func addTag(_ tag: String, to skillId: String) {
+        // Save global tag
+        var global = allTags()
+        global.insert(tag)
+        saveGlobalTags(global)
+
+        // Save assignment
+        var all = loadAssignments()
+        all[skillId, default: []].insert(tag)
+        saveAssignments(all)
+    }
+
+    public func removeTag(_ tag: String, from skillId: String) {
+        var all = loadAssignments()
+        all[skillId]?.remove(tag)
+        if all[skillId]?.isEmpty == true {
+            all.removeValue(forKey: skillId)
         }
-        return counts
+        saveAssignments(all)
     }
 
     // MARK: - Persistence
 
-    private func loadAll() -> [String: Set<String>] {
-        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
+    private func loadAssignments() -> [String: Set<String>] {
+        guard let data = UserDefaults.standard.data(forKey: Self.assignmentsKey),
               let decoded = try? JSONDecoder().decode([String: [String]].self, from: data) else {
             return [:]
         }
         return decoded.mapValues { Set($0) }
     }
 
-    private func save(_ tags: [String: Set<String>]) {
-        let serializable = tags.mapValues { Array($0) }
+    private func saveAssignments(_ assignments: [String: Set<String>]) {
+        let serializable = assignments.mapValues { Array($0).sorted() }
         if let data = try? JSONEncoder().encode(serializable) {
-            UserDefaults.standard.set(data, forKey: Self.storageKey)
+            UserDefaults.standard.set(data, forKey: Self.assignmentsKey)
+        }
+    }
+
+    private func saveGlobalTags(_ tags: Set<String>) {
+        if let data = try? JSONEncoder().encode(Array(tags).sorted()) {
+            UserDefaults.standard.set(data, forKey: Self.globalTagsKey)
         }
     }
 }

@@ -8,43 +8,19 @@ import Mockable
 @MainActor
 struct SkillLibraryUserTagTests {
 
-    // MARK: - SkillTags Creation
-
-    @Test func `skillTags returns SkillTags with file tags and custom tags`() {
-        let skill = makeSkill(id: "my-skill", tags: ["development", "swift"])
-        let localCatalog = makeLocalCatalog(skills: [skill])
-        let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("my-skill")).willReturn(["favorites"])
-
-        let library = SkillLibrary(
-            localCatalog: localCatalog,
-            installer: mockInstaller,
-            userTagRepository: mockUserTags
-        )
-
-        let tags = library.skillTags(for: skill)
-
-        #expect(tags.fileTags == ["development", "swift"])
-        #expect(tags.customTags == ["favorites"])
-        #expect(tags.allTags == ["development", "favorites", "swift"])
-    }
-
     // MARK: - Tag Counts
 
-    @Test func `tagCounts includes both file tags and custom tags`() {
+    @Test func `tagCounts includes file tags and custom tags`() {
         let skill = makeSkill(id: "my-skill", tags: ["development"])
         let localCatalog = makeLocalCatalog(skills: [skill])
         let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("my-skill")).willReturn(["favorites"])
+        let skillTags = SkillTags()
+        skillTags.createTag("favorites", for: "my-skill")
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
             installer: mockInstaller,
-            userTagRepository: mockUserTags
+            skillTags: skillTags
         )
 
         let counts = library.tagCounts
@@ -53,22 +29,20 @@ struct SkillLibraryUserTagTests {
         #expect(counts["favorites"] == 1)
     }
 
-    // MARK: - Filter By Tag
+    // MARK: - Filter
 
     @Test func `filteredSkills filters by custom tag`() {
         let skill1 = makeSkill(id: "skill-a", tags: ["development"])
         let skill2 = makeSkill(id: "skill-b", tags: ["testing"])
         let localCatalog = makeLocalCatalog(skills: [skill1, skill2])
         let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("skill-a")).willReturn(["favorites"])
-        given(mockUserTags).tags(for: .value("skill-b")).willReturn([])
+        let skillTags = SkillTags()
+        skillTags.createTag("favorites", for: "skill-a")
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
             installer: mockInstaller,
-            userTagRepository: mockUserTags
+            skillTags: skillTags
         )
         library.selectedTag = "favorites"
 
@@ -80,14 +54,10 @@ struct SkillLibraryUserTagTests {
         let skill = makeSkill(id: "skill-a", tags: ["development"])
         let localCatalog = makeLocalCatalog(skills: [skill])
         let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("skill-a")).willReturn([])
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
-            installer: mockInstaller,
-            userTagRepository: mockUserTags
+            installer: mockInstaller
         )
         library.selectedTag = "development"
 
@@ -96,12 +66,7 @@ struct SkillLibraryUserTagTests {
 
     // MARK: - Shared Across Catalogs
 
-    @Test func `skillTags uses skill id so tags are shared across catalogs`() {
-        let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("my-skill")).willReturn(["favorites"])
-
+    @Test func `custom tag shows in both local and remote catalog views`() {
         let localSkill = makeSkill(id: "my-skill", tags: [])
         let remoteSkill = Skill(
             id: "my-skill", name: "my-skill", description: "", version: "1.0.0",
@@ -111,20 +76,24 @@ struct SkillLibraryUserTagTests {
 
         let localCatalog = makeLocalCatalog(skills: [localSkill])
         let remoteCatalog = makeRemoteCatalog(skills: [remoteSkill])
+        let mockInstaller = MockSkillInstaller()
+        let skillTags = SkillTags()
+        skillTags.createTag("favorites", for: "my-skill")
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
             remoteCatalogs: [remoteCatalog],
             installer: mockInstaller,
-            userTagRepository: mockUserTags
+            skillTags: skillTags
         )
 
-        // Both skills share the same id, so same SkillTags
-        let localTags = library.skillTags(for: localSkill)
-        let remoteTags = library.skillTags(for: remoteSkill)
+        // Local view
+        library.selectedSource = .allInstalled
+        #expect(library.tagCounts["favorites"] == 1)
 
-        #expect(localTags === remoteTags)
-        #expect(localTags.customTags == ["favorites"])
+        // Remote view
+        library.selectedSource = .remote(repoId: remoteCatalog.id)
+        #expect(library.tagCounts["favorites"] == 1)
     }
 
     // MARK: - Helpers

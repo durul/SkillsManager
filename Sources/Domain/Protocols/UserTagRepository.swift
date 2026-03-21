@@ -1,19 +1,18 @@
 import Foundation
 import Mockable
 
-/// Protocol for managing user-added custom tags on skills
-/// User tags are stored separately from SKILL.md frontmatter tags
+/// Protocol for persisting user-created tags (CRUD only)
 @Mockable
 public protocol UserTagRepository: Sendable {
-    /// Get user-added tags for a skill
-    func tags(for skillKey: String) -> Set<String>
+    /// Get all globally created tags
+    func allTags() -> Set<String>
 
-    /// Add a custom tag to a skill
-    func addTag(_ tag: String, to skillKey: String)
+    /// Get tags assigned to a skill
+    func tags(for skillId: String) -> Set<String>
 
-    /// Remove a custom tag from a skill
-    func removeTag(_ tag: String, from skillKey: String)
+    /// Add a tag to a skill (creates the tag globally if new)
+    func addTag(_ tag: String, to skillId: String)
 
-    /// Get all user tags across all skills, with counts
-    func allTagCounts() -> [String: Int]
+    /// Remove a tag from a skill
+    func removeTag(_ tag: String, from skillId: String)
 }

@@ -37,8 +37,8 @@ public final class SkillLibrary {
     /// Selected tag filter (nil = show all)
     public var selectedTag: String?
 
-    /// SkillTags per skill id — @Observable, drives SwiftUI reactivity
-    public var skillTagsMap: [String: SkillTags] = [:]
+    /// Global skill tags — @Observable domain aggregate
+    public let skillTags: SkillTags
 
     // MARK: - Loading State
 
@@ -81,9 +81,9 @@ public final class SkillLibrary {
             skills = skills.filter { $0.isInstalledFor(provider) }
         }
 
-        // Filter by tag
+        // Filter by tag (file tags + custom tags)
         if let tag = selectedTag {
-            skills = skills.filter { skillTags(for: $0).hasTag(tag) }
+            skills = skills.filter { skillTags.hasTag(tag, skill: $0) }
         }
 
         // Filter by search
@@ -94,10 +94,9 @@ public final class SkillLibrary {
         return skills
     }
 
-    /// Tag counts for the current catalog's skills
+    /// Tag counts for the current view's skills
     public var tagCounts: [String: Int] {
-        let tagsList = selectedCatalog.skills.map { skillTags(for: $0) }
-        return SkillTags.tagCounts(from: tagsList)
+        skillTags.tagCounts(for: selectedCatalog.skills)
     }
 
     /// Count of local skills
@@ -144,8 +143,10 @@ public final class SkillLibrary {
             loader: localLoader
         )
 
+        let userTagRepo = UserDefaultsUserTagRepository()
         self.installer = FileSystemSkillInstaller()
-        self.userTagRepository = UserDefaultsUserTagRepository()
+        self.userTagRepository = userTagRepo
+        self.skillTags = SkillTags(repository: userTagRepo)
         self.writerFactory = { LocalSkillWriter() }
         self.catalogLoaderFactory = Self.createCatalogLoader
         self.cacheCleaner = Self.cleanCacheForURL
@@ -158,6 +159,7 @@ public final class SkillLibrary {
         remoteCatalogs: [SkillsCatalog] = [],
         installer: SkillInstaller,
         userTagRepository: UserTagRepository? = nil,
+        skillTags: SkillTags = SkillTags(),
         writerFactory: @escaping () -> SkillWriter = { LocalSkillWriter() },
         catalogLoaderFactory: @escaping (String) -> SkillRepository = { ClonedRepoSkillRepository(repoUrl: $0) },
         cacheCleaner: @escaping (String) throws -> Void = { try ClonedRepoSkillRepository.deleteClone(forRepoUrl: $0) }
@@ -166,6 +168,7 @@ public final class SkillLibrary {
         self.remoteCatalogs = remoteCatalogs
         self.installer = installer
         self.userTagRepository = userTagRepository
+        self.skillTags = skillTags
         self.writerFactory = writerFactory
         self.catalogLoaderFactory = catalogLoaderFactory
         self.cacheCleaner = cacheCleaner
@@ -385,22 +388,6 @@ public final class SkillLibrary {
         } catch {
             errorMessage = "Save failed: \(error.localizedDescription)"
         }
-    }
-
-    // MARK: - Skill Tags
-
-    /// Get or create SkillTags for a skill (lazy, cached in skillTagsMap)
-    public func skillTags(for skill: Skill) -> SkillTags {
-        if let existing = skillTagsMap[skill.id] {
-            return existing
-        }
-        let tags = SkillTags(
-            skillId: skill.id,
-            fileTags: skill.tags,
-            repository: userTagRepository
-        )
-        skillTagsMap[skill.id] = tags
-        return tags
     }
 
 }
