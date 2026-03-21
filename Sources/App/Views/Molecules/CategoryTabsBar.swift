@@ -1,65 +1,62 @@
-//
-//  CategoryTabsBar.swift
-//  SkillsManager
-//
-//  Molecule: Horizontal scrolling tabs for filtering skills by tag
-//
-
 import SwiftUI
 
+/// Molecule: Horizontal scrollable tag filter tabs
+/// Matches prototype .category-tabs style
 struct CategoryTabsBar: View {
-    let tags: [String]
-    let skillCounts: [String: Int]
+    let tagCounts: [String: Int]
+    let totalCount: Int
     @Binding var selectedTag: String?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DesignSystem.Spacing.xs) {
+            HStack(spacing: 4) {
                 // "All" tab
-                tabButton(label: "All", count: totalCount, isSelected: selectedTag == nil) {
+                tabButton(label: "All", count: totalCount, isActive: selectedTag == nil) {
                     selectedTag = nil
                 }
 
-                // Tag tabs
-                ForEach(tags, id: \.self) { tag in
-                    tabButton(label: tag, count: skillCounts[tag] ?? 0, isSelected: selectedTag == tag) {
+                // Tag tabs sorted alphabetically
+                ForEach(sortedTags, id: \.self) { tag in
+                    tabButton(label: tag, count: tagCounts[tag] ?? 0, isActive: selectedTag == tag) {
                         selectedTag = tag
                     }
                 }
             }
-            .padding(.horizontal, DesignSystem.Spacing.lg)
+            .padding(.horizontal, 24)
         }
-        .padding(.vertical, DesignSystem.Spacing.xs)
+        .frame(height: 36)
+        .background(DS.Colors.bgPrimary)
+        .overlay(alignment: .bottom) {
+            Divider().overlay(DS.Colors.border)
+        }
     }
 
-    private var totalCount: Int {
-        skillCounts.values.reduce(0) { max($0, $1) }
+    private var sortedTags: [String] {
+        tagCounts.keys.sorted()
     }
 
-    private func tabButton(label: String, count: Int, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func tabButton(label: String, count: Int, isActive: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: DesignSystem.Spacing.xs) {
+            HStack(spacing: 4) {
                 Text(label)
-                    .font(DesignSystem.Typography.caption)
+                    .font(DS.Typography.description)
+                    .fontWeight(.medium)
+
                 Text("\(count)")
-                    .font(DesignSystem.Typography.micro)
-                    .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                    .font(DS.Typography.micro)
+                    .foregroundStyle(DS.Colors.textMuted)
             }
-            .padding(.horizontal, DesignSystem.Spacing.md)
-            .padding(.vertical, DesignSystem.Spacing.sm)
-            .background(isSelected ? DesignSystem.Colors.accent.opacity(0.12) : Color.clear)
-            .foregroundStyle(isSelected ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
-            .clipShape(Capsule())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .foregroundStyle(isActive ? DS.Colors.accent : DS.Colors.textMuted)
+            .overlay(alignment: .bottom) {
+                if isActive {
+                    Rectangle()
+                        .fill(DS.Colors.accent)
+                        .frame(height: 2)
+                }
+            }
         }
         .buttonStyle(.plain)
     }
-}
-
-#Preview {
-    CategoryTabsBar(
-        tags: ["development", "design", "testing", "ai", "devops"],
-        skillCounts: ["development": 5, "design": 2, "testing": 2, "ai": 2, "devops": 1],
-        selectedTag: .constant(nil)
-    )
-    .frame(width: 600)
 }

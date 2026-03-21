@@ -31,7 +31,7 @@ struct UpdatesSettingsView: View {
                         Button {
                             sparkleUpdater?.checkForUpdates()
                         } label: {
-                            HStack(spacing: DesignSystem.Spacing.sm) {
+                            HStack(spacing: DS.Spacing.sm) {
                                 if sparkleUpdater?.isCheckingForUpdates == true {
                                     ProgressView()
                                         .scaleEffect(0.7)
@@ -42,7 +42,7 @@ struct UpdatesSettingsView: View {
                                 }
 
                                 Text(sparkleUpdater?.isCheckingForUpdates == true ? "Checking..." : "Check for Updates")
-                                    .font(DesignSystem.Typography.body)
+                                    .font(DS.Typography.body)
                             }
                         }
                         .disabled(sparkleUpdater?.canCheckForUpdates != true || sparkleUpdater?.isCheckingForUpdates == true)
@@ -50,32 +50,38 @@ struct UpdatesSettingsView: View {
                         Spacer()
 
                         // Version badge
-                        RefinedBadge(text: "v\(appVersion)", style: .version)
+                        Text("v\(appVersion)")
+                            .font(DS.Typography.tag)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(DS.Colors.bgInput)
+                            .foregroundStyle(DS.Colors.textMuted)
+                            .clipShape(Capsule())
                     }
 
                     // Last check info
                     if let lastCheck = sparkleUpdater?.lastUpdateCheckDate {
-                        HStack(spacing: DesignSystem.Spacing.xs) {
+                        HStack(spacing: DS.Spacing.xs) {
                             Image(systemName: "clock")
                                 .font(.system(size: 10))
-                                .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                                .foregroundStyle(DS.Colors.textMuted)
 
                             Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
-                                .font(DesignSystem.Typography.caption)
-                                .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                                .font(DS.Typography.caption)
+                                .foregroundStyle(DS.Colors.textMuted)
                         }
                     }
 
                     // Update available indicator
                     if sparkleUpdater?.isUpdateAvailable == true,
                        let version = sparkleUpdater?.availableVersion {
-                        HStack(spacing: DesignSystem.Spacing.sm) {
+                        HStack(spacing: DS.Spacing.sm) {
                             Image(systemName: "arrow.down.circle.fill")
-                                .foregroundStyle(DesignSystem.Colors.success)
+                                .foregroundStyle(DS.Colors.green)
 
                             Text("Version \(version) is available")
-                                .font(DesignSystem.Typography.body)
-                                .foregroundStyle(DesignSystem.Colors.primaryText)
+                                .font(DS.Typography.body)
+                                .foregroundStyle(DS.Colors.textPrimary)
 
                             Spacer()
 
@@ -83,22 +89,22 @@ struct UpdatesSettingsView: View {
                                 sparkleUpdater?.checkForUpdates()
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(DesignSystem.Colors.success)
+                            .tint(DS.Colors.green)
                         }
-                        .padding(DesignSystem.Spacing.md)
-                        .background(DesignSystem.Colors.success.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.medium))
+                        .padding(DS.Spacing.md)
+                        .background(DS.Colors.green.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md))
                     }
                 } else {
                     // Debug mode message
-                    HStack(spacing: DesignSystem.Spacing.sm) {
+                    HStack(spacing: DS.Spacing.sm) {
                         Image(systemName: "hammer.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                            .foregroundStyle(DS.Colors.textMuted)
 
                         Text("Updates unavailable in debug builds")
-                            .font(DesignSystem.Typography.body)
-                            .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                            .font(DS.Typography.body)
+                            .foregroundStyle(DS.Colors.textMuted)
                     }
                 }
             } header: {
@@ -118,8 +124,8 @@ struct UpdatesSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Include beta versions")
                         Text("Get early access to new features")
-                            .font(DesignSystem.Typography.caption)
-                            .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                            .font(DS.Typography.caption)
+                            .foregroundStyle(DS.Colors.textMuted)
                     }
                 }
                 .disabled(sparkleUpdater?.isAvailable != true)

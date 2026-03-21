@@ -26,7 +26,10 @@ public final class SkillLibrary {
     public var selectedSkill: Skill?
 
     /// Current source filter
-    public var selectedSource: SourceFilter = .local
+    public var selectedSource: SourceFilter = .allInstalled
+
+    /// View mode (grid or list)
+    public var viewMode: ViewMode = .grid
 
     /// Search query
     public var searchQuery: String = ""
@@ -59,16 +62,21 @@ public final class SkillLibrary {
     /// Currently selected catalog
     public var selectedCatalog: SkillsCatalog {
         switch selectedSource {
-        case .local:
+        case .allInstalled, .provider:
             return localCatalog
         case .remote(let catalogId):
             return remoteCatalogs.first { $0.id == catalogId } ?? localCatalog
         }
     }
 
-    /// Filtered skills based on source, tag, and search
+    /// Filtered skills based on source, provider, tag, and search
     public var filteredSkills: [Skill] {
         var skills = selectedCatalog.skills
+
+        // Filter by provider
+        if case .provider(let provider) = selectedSource {
+            skills = skills.filter { $0.isInstalledFor(provider) }
+        }
 
         // Filter by tag
         if let tag = selectedTag {
@@ -97,6 +105,21 @@ public final class SkillLibrary {
     /// Count of local skills
     public var localSkillCount: Int {
         localCatalog.skills.count
+    }
+
+    /// Skills installed for Claude Code
+    public var claudeSkillCount: Int {
+        localCatalog.skills.filter { $0.isInstalledFor(.claude) }.count
+    }
+
+    /// Skills installed for Codex
+    public var codexSkillCount: Int {
+        localCatalog.skills.filter { $0.isInstalledFor(.codex) }.count
+    }
+
+    /// Total skills across all catalogs
+    public var totalSkillCount: Int {
+        catalogs.reduce(0) { $0 + $1.skillCount }
     }
 
     // MARK: - Dependencies
@@ -188,7 +211,7 @@ public final class SkillLibrary {
 
         // If we were viewing that catalog, switch to local
         if case .remote(let catalogId) = selectedSource, catalogId == catalog.id {
-            selectedSource = .local
+            selectedSource = .allInstalled
         }
     }
 
@@ -385,6 +408,13 @@ extension SkillLibrary {
 
 /// Filter for skill sources
 public enum SourceFilter: Hashable {
-    case local
+    case allInstalled
+    case provider(Provider)
     case remote(repoId: UUID)
+}
+
+/// View mode for the skills grid
+public enum ViewMode {
+    case grid
+    case list
 }

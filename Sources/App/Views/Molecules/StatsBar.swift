@@ -1,47 +1,60 @@
-//
-//  StatsBar.swift
-//  SkillsManager
-//
-//  Molecule: Horizontal stats overview (total, installed, catalogs)
-//
-
 import SwiftUI
 
+/// Molecule: Stats row showing total/installed/catalogs
+/// Matches prototype .stats-bar style
 struct StatsBar: View {
     let totalSkills: Int
     let installedSkills: Int
     let catalogCount: Int
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.xxl) {
-            statItem(icon: "book.closed", value: totalSkills, label: "Total Skills", color: DesignSystem.Colors.accent)
-            statItem(icon: "checkmark", value: installedSkills, label: "Installed", color: DesignSystem.Colors.success)
-            statItem(icon: "folder", value: catalogCount, label: "Catalogs", color: .purple)
+        HStack(spacing: 24) {
+            statItem(
+                icon: "book",
+                value: totalSkills,
+                label: "Total Skills",
+                color: DS.Colors.accent,
+                bgColor: Color(hex: 0x3B82F6).opacity(0.12)
+            )
+
+            statItem(
+                icon: "checkmark",
+                value: installedSkills,
+                label: "Installed",
+                color: DS.Colors.green,
+                bgColor: Color(hex: 0x22C55E).opacity(0.12)
+            )
+
+            statItem(
+                icon: "link",
+                value: catalogCount,
+                label: "Catalogs",
+                color: DS.Colors.purple,
+                bgColor: Color(hex: 0xA855F7).opacity(0.12)
+            )
         }
-        .padding(.horizontal, DesignSystem.Spacing.lg)
-        .padding(.vertical, DesignSystem.Spacing.sm)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 16)
     }
 
-    private func statItem(icon: String, value: Int, label: String, color: Color) -> some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
+    private func statItem(icon: String, value: Int, label: String, color: Color, bgColor: Color) -> some View {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 12))
+                .frame(width: 32, height: 32)
+                .background(bgColor)
                 .foregroundStyle(color)
-                .frame(width: 28, height: 28)
-                .background(color.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.small))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
             VStack(alignment: .leading, spacing: 0) {
                 Text("\(value)")
-                    .font(DesignSystem.Typography.headline)
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .foregroundStyle(DS.Colors.textPrimary)
+
                 Text(label)
-                    .font(DesignSystem.Typography.micro)
-                    .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Colors.textMuted)
             }
         }
     }
-}
-
-#Preview {
-    StatsBar(totalSkills: 38, installedSkills: 12, catalogCount: 3)
-        .frame(width: 500)
 }

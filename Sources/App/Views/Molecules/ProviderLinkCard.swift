@@ -1,65 +1,56 @@
-//
-//  ProviderLinkCard.swift
-//  SkillsManager
-//
-//  Molecule: Provider card showing link status with symlink path
-//
-
 import SwiftUI
 import Domain
 
+/// Molecule: Provider card with icon, name, path, and link status
+/// Matches prototype .provider-card style
 struct ProviderLinkCard: View {
     let provider: Provider
-    let isLinked: Bool
-    var path: String? = nil
+    let isInstalled: Bool
+    var pathSuffix: String = ""
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.md) {
-            providerIcon
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
+        HStack(spacing: 12) {
+            // Provider icon
+            Text(provider == .claude ? "C" : "X")
+                .font(.system(size: 14, weight: .bold))
+                .frame(width: 36, height: 36)
+                .background(provider == .claude
+                    ? Color(hex: 0x3B82F6).opacity(0.12)
+                    : Color(hex: 0x22C55E).opacity(0.12))
+                .foregroundStyle(provider == .claude ? DS.Colors.accent : DS.Colors.green)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            // Info
+            VStack(alignment: .leading, spacing: 2) {
                 Text(provider.displayName)
-                    .font(DesignSystem.Typography.caption)
+                    .font(DS.Typography.body)
                     .fontWeight(.semibold)
-                if let path {
-                    Text(path + (isLinked ? " ← symlink" : ""))
-                        .font(DesignSystem.Typography.code)
-                        .foregroundStyle(DesignSystem.Colors.tertiaryText)
-                }
+                    .foregroundStyle(DS.Colors.textPrimary)
+
+                Text(providerPath)
+                    .font(DS.Typography.monoSmall)
+                    .foregroundStyle(DS.Colors.textMuted)
             }
+
             Spacer()
-            LinkStatusBadge(isLinked: isLinked)
+
+            // Status
+            LinkStatusBadge(isLinked: isInstalled)
         }
-        .padding(DesignSystem.Spacing.md)
-        .background(
-            isLinked ? DesignSystem.Colors.success.opacity(0.05) : DesignSystem.Colors.badgeBackground
-        )
-        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.small))
+        .padding(12)
+        .background(isInstalled ? Color(hex: 0x22C55E).opacity(0.12) : DS.Colors.bgInput)
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
         .overlay(
-            RoundedRectangle(cornerRadius: DesignSystem.Radius.small)
-                .stroke(
-                    isLinked ? DesignSystem.Colors.success.opacity(0.3) : DesignSystem.Colors.subtleBorder,
-                    lineWidth: 1
-                )
+            RoundedRectangle(cornerRadius: DS.Radius.sm)
+                .stroke(isInstalled ? DS.Colors.green : DS.Colors.border, lineWidth: 1)
         )
     }
 
-    private var providerIcon: some View {
-        Text(provider == .claude ? "C" : "X")
-            .font(.system(size: 13, weight: .bold, design: .rounded))
-            .foregroundStyle(provider == .claude ? DesignSystem.Colors.claudeBlue : DesignSystem.Colors.codexGreen)
-            .frame(width: 32, height: 32)
-            .background(
-                (provider == .claude ? DesignSystem.Colors.claudeBlue : DesignSystem.Colors.codexGreen).opacity(0.12)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radius.small))
+    private var providerPath: String {
+        let base = provider == .claude ? "~/.claude/skills/" : "~/.codex/skills/"
+        if isInstalled {
+            return base + " \u{2190} symlink"
+        }
+        return base + pathSuffix
     }
-}
-
-#Preview {
-    VStack(spacing: 8) {
-        ProviderLinkCard(provider: .claude, isLinked: true, path: "~/.claude/skills/")
-        ProviderLinkCard(provider: .codex, isLinked: false, path: "~/.codex/skills/")
-    }
-    .padding()
-    .frame(width: 360)
 }

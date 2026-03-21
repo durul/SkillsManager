@@ -227,7 +227,7 @@ struct SkillLibraryTests {
             remoteCatalogs: [remoteCatalog],
             installer: MockSkillInstaller()
         )
-        library.selectedSource = .local
+        library.selectedSource = .allInstalled
 
         #expect(library.filteredSkills.count == 1)
         #expect(library.filteredSkills.first?.id == "local")
@@ -242,7 +242,7 @@ struct SkillLibraryTests {
             localCatalog: localCatalog,
             installer: MockSkillInstaller()
         )
-        library.selectedSource = .local
+        library.selectedSource = .allInstalled
         library.searchQuery = "Alpha"
 
         #expect(library.filteredSkills.count == 1)

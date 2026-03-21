@@ -1,292 +1,304 @@
 import SwiftUI
 import Domain
-import Infrastructure
 
+/// Organism: Right detail panel showing selected skill info
+/// Matches prototype detail-panel.css + pages 03-browse, 04-install, 05-uninstall
 struct SkillDetailView: View {
     let skill: Skill
     @Bindable var library: SkillLibrary
-    @Binding var showingInstallSheet: Bool
-
-    // Local UI state for uninstall confirmation
-    @State private var showingUninstallConfirmation = false
-    @State private var providerToUninstall: Provider?
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // Hero header
-                heroHeader
-                    .padding(.horizontal, DesignSystem.Spacing.xxl)
-                    .padding(.top, DesignSystem.Spacing.xl)
-                    .padding(.bottom, DesignSystem.Spacing.lg)
-
-                // Subtle separator
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.clear, DesignSystem.Colors.subtleBorder, .clear],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(height: 1)
-                    .padding(.horizontal, DesignSystem.Spacing.xxl)
-
-                // Markdown content
-                MarkdownView(content: skill.content)
-                    .textSelection(.enabled)
-                    .padding(.horizontal, DesignSystem.Spacing.xxl)
-                    .padding(.top, DesignSystem.Spacing.xl)
-                    .padding(.bottom, DesignSystem.Spacing.xxxl)
-            }
-        }
-        .background(Color(nsColor: .textBackgroundColor))
-        .navigationTitle(skill.name)
-        .navigationSubtitle(skill.source.displayName)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                // Edit button (only for local skills)
-                if skill.isEditable {
-                    Button {
-                        library.startEditing()
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .help("Edit skill")
-                }
-
-                // Install button
-                Button {
-                    showingInstallSheet = true
-                } label: {
-                    Image(systemName: "square.and.arrow.down")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .help("Install skill")
-
-                // Uninstall menu (only if installed)
-                if skill.isInstalled {
-                    Menu {
-                        ForEach(Array(skill.installedProviders), id: \.self) { provider in
-                            Button(role: .destructive) {
-                                providerToUninstall = provider
-                                showingUninstallConfirmation = true
-                            } label: {
-                                Label("Uninstall from \(provider.displayName)", systemImage: "trash")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .help("Uninstall skill")
-                }
-
-                // Open in Finder
-                Button {
-                    openInFinder()
-                } label: {
-                    Image(systemName: "folder")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .help("Show in Finder")
-                .disabled(!skill.source.isLocal)
-            }
-        }
-        .confirmationDialog(
-            "Uninstall Skill",
-            isPresented: $showingUninstallConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Uninstall", role: .destructive) {
-                if let provider = providerToUninstall {
-                    Task { await library.uninstall(from: provider) }
-                }
-            }
-            Button("Cancel", role: .cancel) {
-                providerToUninstall = nil
-            }
-        } message: {
-            if let provider = providerToUninstall {
-                Text("Are you sure you want to uninstall \"\(skill.name)\" from \(provider.displayName)? This will delete the skill folder.")
-            }
-        }
-    }
-
-    // MARK: - Hero Header
-
-    private var heroHeader: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-            // Title row
-            HStack(alignment: .top, spacing: DesignSystem.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                    // Skill name
-                    Text(skill.displayName)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(DesignSystem.Colors.primaryText)
-
-                    // Source info
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        Image(systemName: skill.source.isLocal ? "internaldrive" : "cloud")
-                            .font(.system(size: 11, weight: .medium))
-                        Text(skill.source.displayName)
-                            .font(DesignSystem.Typography.bodySecondary)
-                    }
-                    .foregroundStyle(DesignSystem.Colors.tertiaryText)
-                }
-
-                Spacer()
-
-                // Installation status indicator
-                if skill.isInstalled {
-                    IconBadge(icon: "checkmark.circle.fill", text: "Installed", color: DesignSystem.Colors.success)
-                }
-            }
-
-            // Description
-            Text(skill.description)
-                .font(DesignSystem.Typography.body)
-                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
-
-            // Tags
-            if !skill.tags.isEmpty {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                    Text("Tags")
-                        .font(DesignSystem.Typography.micro)
-                        .foregroundStyle(DesignSystem.Colors.tertiaryText)
-                        .textCase(.uppercase)
-                    FlowLayout(spacing: DesignSystem.Spacing.xs) {
-                        ForEach(skill.tags, id: \.self) { tag in
-                            TagChip(text: tag)
-                        }
-                    }
-                }
-            }
-
-            // Metadata row
-            HStack(spacing: DesignSystem.Spacing.lg) {
-                metadataItem(icon: "tag", label: "Version", value: "v\(skill.version)")
-                if skill.hasReferences {
-                    metadataItem(icon: "doc.text", label: "References", value: "\(skill.referenceCount)")
-                }
-                if skill.hasScripts {
-                    metadataItem(icon: "terminal", label: "Scripts", value: "\(skill.scriptCount)")
-                }
-            }
-
-            // Storage path
-            if skill.isInstalled {
-                StoragePath(label: "Installed at", path: "~/.agent/skills/\(skill.id)/")
-            }
-
-            // Linked providers
-            if skill.isInstalled {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                    Text("Linked Providers")
-                        .font(DesignSystem.Typography.micro)
-                        .foregroundStyle(DesignSystem.Colors.tertiaryText)
-                        .textCase(.uppercase)
-
-                    ForEach(Provider.allCases) { provider in
-                        ProviderLinkCard(
-                            provider: provider,
-                            isLinked: skill.isInstalledFor(provider),
-                            path: provider == .claude ? "~/.claude/skills/" : "~/.codex/skills/"
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Metadata Item
-
-    private func metadataItem(icon: String, label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 10, weight: .medium))
-                Text(label)
-                    .font(DesignSystem.Typography.micro)
-            }
-            .foregroundStyle(DesignSystem.Colors.tertiaryText)
-
-            Text(value)
-                .font(DesignSystem.Typography.headline)
-                .foregroundStyle(DesignSystem.Colors.primaryText)
-        }
-    }
-
-    // MARK: - Actions
-
-    private func openInFinder() {
-        guard case .local(let provider) = skill.source else { return }
-        let pathResolver = ProviderPathResolver()
-        let path = "\(pathResolver.skillsPath(for: provider))/\(skill.id)"
-        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
-    }
-}
-
-// MARK: - Provider Badge
-
-struct ProviderBadge: View {
-    let provider: Provider
+    let onClose: () -> Void
+    let onInstall: () -> Void
     let onUninstall: () -> Void
 
-    @State private var isHovering = false
-
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.xs) {
-            // Provider icon
-            Image(systemName: providerIcon)
-                .font(.system(size: 10, weight: .semibold))
+        VStack(spacing: 0) {
+            header
+            body_
+            footer
+        }
+        .frame(width: DS.Layout.detailWidth)
+        .background(DS.Colors.bgSecondary)
+    }
 
-            Text(provider.displayName)
-                .font(DesignSystem.Typography.caption)
+    // MARK: - Header
 
-            if isHovering {
-                Button {
-                    onUninstall()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(skill.displayName)
+                    .font(DS.Typography.detailName)
+                    .foregroundStyle(DS.Colors.textPrimary)
+
+                HStack(spacing: 4) {
+                    Image(systemName: skill.source.isLocal ? "folder" : "link")
                         .font(.system(size: 10))
+                    Text(skill.source.displayName)
                 }
-                .buttonStyle(.plain)
-                .transition(.scale.combined(with: .opacity))
+                .font(DS.Typography.description)
+                .foregroundStyle(DS.Colors.textMuted)
             }
+
+            Spacer()
+
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11))
+                    .foregroundStyle(DS.Colors.textMuted)
+                    .frame(width: 28, height: 28)
+                    .background(DS.Colors.bgSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, DesignSystem.Spacing.md)
-        .padding(.vertical, DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.Radius.medium, style: .continuous)
-                .fill(providerColor.opacity(0.12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignSystem.Radius.medium, style: .continuous)
-                        .stroke(providerColor.opacity(0.25), lineWidth: 1)
-                )
-        )
-        .foregroundStyle(providerColor)
-        .onHover { hovering in
-            withAnimation(DesignSystem.Animation.quick) {
-                isHovering = hovering
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .overlay(alignment: .bottom) {
+            Divider().overlay(DS.Colors.border)
+        }
+    }
+
+    // MARK: - Body
+
+    private var body_: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                descriptionSection
+                tagsSection
+                metadataSection
+
+                if skill.isInstalled {
+                    storageSection
+                }
+
+                providersSection
+                contentPreviewSection
+            }
+            .padding(20)
+        }
+    }
+
+    // MARK: - Sections
+
+    private var descriptionSection: some View {
+        detailSection("Description") {
+            Text(skill.description)
+                .font(DS.Typography.body)
+                .foregroundStyle(DS.Colors.textSecondary)
+                .lineSpacing(5)
+        }
+    }
+
+    private var tagsSection: some View {
+        detailSection("Tags") {
+            FlowLayout(spacing: 6) {
+                ForEach(skill.tags, id: \.self) { tag in
+                    TagChip.category(tag)
+                }
             }
         }
     }
 
-    private var providerIcon: String {
-        switch provider {
-        case .codex: return "terminal"
-        case .claude: return "message"
+    private var metadataSection: some View {
+        detailSection("Metadata") {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                metaItem(label: "Version", value: skill.version)
+                metaItem(label: "References", value: skill.hasReferences ? "\(skill.referenceCount) files" : "None")
+                metaItem(label: "Scripts", value: skill.hasScripts ? "\(skill.scriptCount) files" : "None")
+                metaItem(label: "Source", value: skill.source.isLocal ? "Local" : "GitHub")
+            }
         }
     }
 
-    private var providerColor: Color {
-        switch provider {
-        case .codex: return DesignSystem.Colors.codexGreen
-        case .claude: return DesignSystem.Colors.claudeBlue
+    private var storageSection: some View {
+        detailSection("Storage") {
+            StoragePath(label: "Installed at", path: "~/.agent/skills/\(skill.id)/")
         }
+    }
+
+    private var providersSection: some View {
+        detailSection(skill.isInstalled ? "Linked Providers" : "Providers") {
+            VStack(spacing: 8) {
+                ForEach(Provider.allCases) { provider in
+                    ProviderLinkCard(
+                        provider: provider,
+                        isInstalled: skill.isInstalledFor(provider)
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var contentPreviewSection: some View {
+        if !skill.content.isEmpty {
+            detailSection("Content Preview") {
+                Text(contentPreview)
+                    .font(DS.Typography.mono)
+                    .foregroundStyle(DS.Colors.textSecondary)
+                    .lineSpacing(5)
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(DS.Colors.bgInput)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DS.Radius.sm)
+                            .stroke(DS.Colors.border, lineWidth: 1)
+                    )
+                    .frame(maxHeight: 300)
+            }
+        }
+    }
+
+    // MARK: - Footer
+
+    private var footer: some View {
+        VStack(spacing: 0) {
+            Divider().overlay(DS.Colors.border)
+
+            HStack(spacing: 8) {
+                if skill.isInstalled {
+                    Button(action: onUninstall) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                            Text("Uninstall")
+                        }
+                        .font(DS.Typography.body)
+                        .fontWeight(.medium)
+                        .foregroundStyle(DS.Colors.red)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DS.Radius.sm)
+                                .stroke(DS.Colors.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    if skill.isEditable {
+                        Button {
+                            library.startEditing()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 11))
+                                Text("Edit")
+                            }
+                            .font(DS.Typography.body)
+                            .fontWeight(.medium)
+                            .foregroundStyle(DS.Colors.textSecondary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: DS.Radius.sm)
+                                    .stroke(DS.Colors.border, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Spacer()
+
+                    if skill.isFullyInstalled {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11))
+                            Text("All Linked")
+                        }
+                        .font(DS.Typography.body)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(DS.Colors.accent.opacity(0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                    } else {
+                        Button(action: onInstall) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.down")
+                                    .font(.system(size: 11))
+                                Text("Link to \(skill.availableProviders.first?.displayName ?? "")")
+                            }
+                            .font(DS.Typography.body)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(DS.Colors.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Spacer()
+
+                    Button(action: onInstall) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 11))
+                            Text("Install & Link")
+                        }
+                        .font(DS.Typography.body)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(DS.Colors.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func detailSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(DS.Typography.sectionTitle)
+                .tracking(0.5)
+                .foregroundStyle(DS.Colors.textMuted)
+
+            content()
+        }
+    }
+
+    private func metaItem(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(DS.Typography.micro)
+                .foregroundStyle(DS.Colors.textMuted)
+                .tracking(0.3)
+
+            Text(value)
+                .font(DS.Typography.body)
+                .fontWeight(.medium)
+                .foregroundStyle(DS.Colors.textPrimary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DS.Colors.bgInput)
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+    }
+
+    private var contentPreview: String {
+        // Strip frontmatter and show first ~500 chars
+        var content = skill.content
+        if content.hasPrefix("---") {
+            if let endRange = content.range(of: "---", range: content.index(content.startIndex, offsetBy: 3)..<content.endIndex) {
+                content = String(content[endRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        if content.count > 500 {
+            content = String(content.prefix(500)) + "..."
+        }
+        return content
     }
 }

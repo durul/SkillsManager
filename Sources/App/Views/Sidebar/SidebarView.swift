@@ -1,301 +1,257 @@
 import SwiftUI
 import Domain
 
+/// Organism: Left sidebar with search, installed nav, catalogs nav, add catalog button
+/// Matches prototype sidebar.css + app-shell.js renderSidebar()
 struct SidebarView: View {
     @Bindable var library: SkillLibrary
-
-    #if ENABLE_SPARKLE
-    @Environment(\.sparkleUpdater) private var sparkleUpdater
-    #endif
-
-    @State private var searchIsFocused = false
-    @State private var showingAddCatalogSheet = false
+    @Binding var showAddCatalog: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // Search bar with refined styling
-            searchBar
-                .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.top, DesignSystem.Spacing.md)
+            // Header
+            header
 
-            // Source picker
-            SourcePicker(
-                selection: $library.selectedSource,
-                catalogs: library.catalogs,
-                onAddCatalog: {
-                    showingAddCatalogSheet = true
-                },
-                onRemoveCatalog: { catalog in
-                    library.removeCatalog(catalog)
+            // Search
+            searchBox
+
+            // Source sections
+            ScrollView {
+                VStack(spacing: 4) {
+                    installedSection
+                    catalogsSection
                 }
-            )
-            .padding(.horizontal, DesignSystem.Spacing.md)
-            .padding(.vertical, DesignSystem.Spacing.md)
-
-            // Category tabs (auto-generated from tags)
-            if !library.selectedCatalog.allTags.isEmpty {
-                CategoryTabsBar(
-                    tags: library.selectedCatalog.allTags,
-                    skillCounts: library.tagCounts,
-                    selectedTag: $library.selectedTag
-                )
+                .padding(.vertical, 8)
             }
 
-            // Subtle divider
-            Rectangle()
-                .fill(DesignSystem.Colors.subtleBorder)
-                .frame(height: 1)
-                .padding(.horizontal, DesignSystem.Spacing.md)
-
-            // Skills header
-            skillsHeader
-                .padding(.horizontal, DesignSystem.Spacing.md)
-                .padding(.vertical, DesignSystem.Spacing.sm)
-
-            // Error message
-            if let error = library.errorMessage {
-                errorBanner(error)
-                    .padding(.horizontal, DesignSystem.Spacing.md)
-                    .padding(.bottom, DesignSystem.Spacing.sm)
-            }
-
-            // Skills list
-            if library.filteredSkills.isEmpty && !library.isLoading {
-                Spacer()
-                emptyState
-                Spacer()
-            } else {
-                skillsList
-            }
+            // Footer: Add Catalog
+            footer
         }
-        .background(Color(nsColor: .windowBackgroundColor))
-        .toolbar {
-            #if ENABLE_SPARKLE
-            ToolbarItem(placement: .primaryAction) {
-                SidebarSettingsButton(sparkleUpdater: sparkleUpdater)
-            }
-            #endif
+        .frame(width: DS.Layout.sidebarWidth)
+        .background(DS.Colors.bgSecondary)
+    }
 
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingAddCatalogSheet = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .help("Add catalog")
-            }
+    // MARK: - Header
 
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await library.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .help("Refresh skills")
-                .disabled(library.isLoading)
-            }
+    private var header: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "book")
+                .font(.system(size: 14))
+                .foregroundStyle(DS.Colors.accent)
+
+            Text("Skills Manager")
+                .font(DS.Typography.sidebarHeader)
+                .foregroundStyle(DS.Colors.textPrimary)
         }
-        .sheet(isPresented: $showingAddCatalogSheet) {
-            AddCatalogSheet(library: library, isPresented: $showingAddCatalogSheet)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .overlay(alignment: .bottom) {
+            Divider().overlay(DS.Colors.border)
         }
     }
 
-    // MARK: - Search Bar
+    // MARK: - Search
 
-    private var searchBar: some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
+    private var searchBox: some View {
+        HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(searchIsFocused ? DesignSystem.Colors.accent : DesignSystem.Colors.tertiaryText)
+                .font(.system(size: 12))
+                .foregroundStyle(DS.Colors.textMuted)
 
-            TextField("Filter skills", text: $library.searchQuery)
+            TextField("Search skills...", text: $library.searchQuery)
+                .font(DS.Typography.body)
                 .textFieldStyle(.plain)
-                .font(DesignSystem.Typography.body)
-
-            if !library.searchQuery.isEmpty {
-                Button {
-                    withAnimation(DesignSystem.Animation.quick) {
-                        library.searchQuery = ""
-                    }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(DesignSystem.Colors.tertiaryText)
-                }
-                .buttonStyle(.plain)
-                .transition(.scale.combined(with: .opacity))
-            }
+                .foregroundStyle(DS.Colors.textPrimary)
         }
-        .padding(.horizontal, DesignSystem.Spacing.md)
-        .padding(.vertical, DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.Radius.medium, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignSystem.Radius.medium, style: .continuous)
-                        .stroke(
-                            searchIsFocused ? DesignSystem.Colors.accent.opacity(0.4) : DesignSystem.Colors.subtleBorder,
-                            lineWidth: 1
-                        )
-                )
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(DS.Colors.bgInput)
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.sm)
+                .stroke(DS.Colors.border, lineWidth: 1)
         )
-        .onTapGesture {
-            searchIsFocused = true
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+    }
+
+    // MARK: - Installed Section
+
+    private var installedSection: some View {
+        VStack(spacing: 0) {
+            sectionHeader(title: "Installed", count: library.localSkillCount)
+
+            navItem(
+                icon: "folder",
+                label: "All Installed",
+                badge: "\(library.localSkillCount)",
+                badgeIsInstalled: true,
+                isActive: library.selectedSource == .allInstalled
+            ) {
+                library.selectedSource = .allInstalled
+            }
+
+            navItem(
+                icon: "cube",
+                label: "Claude Code",
+                badge: "\(library.claudeSkillCount)",
+                badgeIsInstalled: true,
+                isActive: library.selectedSource == .provider(.claude)
+            ) {
+                library.selectedSource = .provider(.claude)
+            }
+
+            navItem(
+                icon: "square.grid.3x3.square",
+                label: "Codex",
+                badge: "\(library.codexSkillCount)",
+                badgeIsInstalled: true,
+                isActive: library.selectedSource == .provider(.codex)
+            ) {
+                library.selectedSource = .provider(.codex)
+            }
         }
     }
 
-    // MARK: - Skills Header
+    // MARK: - Catalogs Section
 
-    private var skillsHeader: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(headerTitle)
-                    .font(DesignSystem.Typography.headline)
-                    .foregroundStyle(DesignSystem.Colors.primaryText)
+    private var catalogsSection: some View {
+        VStack(spacing: 0) {
+            sectionHeader(title: "Catalogs", count: library.remoteCatalogs.count)
 
-                Text("\(library.filteredSkills.count) skill\(library.filteredSkills.count == 1 ? "" : "s")")
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundStyle(DesignSystem.Colors.tertiaryText)
+            ForEach(library.remoteCatalogs) { catalog in
+                navItem(
+                    icon: catalog.isLocalDirectory ? "folder" : "link",
+                    label: catalog.name,
+                    badge: "\(catalog.skillCount)",
+                    badgeIsInstalled: false,
+                    isActive: library.selectedSource == .remote(repoId: catalog.id)
+                ) {
+                    library.selectedSource = .remote(repoId: catalog.id)
+                }
+                .contextMenu {
+                    if !catalog.isOfficial {
+                        Button(role: .destructive) {
+                            library.removeCatalog(catalog)
+                        } label: {
+                            Label("Remove Catalog", systemImage: "trash")
+                        }
+                    }
+                }
             }
 
-            Spacer()
-
-            if library.isLoading {
-                ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.8)
+            if library.remoteCatalogs.isEmpty {
+                Text("No catalogs added yet.\nAdd one to get started.")
+                    .font(DS.Typography.description)
+                    .foregroundStyle(DS.Colors.textMuted)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
             }
         }
     }
 
-    // MARK: - Error Banner
+    // MARK: - Footer
 
-    private func errorBanner(_ message: String) -> some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(DesignSystem.Colors.warning)
-
-            Text(message)
-                .font(DesignSystem.Typography.caption)
-                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                .lineLimit(2)
-
-            Spacer()
+    private var footer: some View {
+        VStack(spacing: 0) {
+            Divider().overlay(DS.Colors.border)
 
             Button {
-                withAnimation(DesignSystem.Animation.quick) {
-                    library.errorMessage = nil
-                }
+                showAddCatalog = true
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11))
+                    Text("Add Catalog")
+                        .font(DS.Typography.description)
+                }
+                .foregroundStyle(DS.Colors.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(.clear)
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.Radius.sm)
+                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [4]))
+                        .foregroundStyle(DS.Colors.border)
+                )
             }
             .buttonStyle(.plain)
+            .padding(16)
         }
-        .padding(DesignSystem.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DesignSystem.Radius.small, style: .continuous)
-                .fill(DesignSystem.Colors.warning.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignSystem.Radius.small, style: .continuous)
-                        .stroke(DesignSystem.Colors.warning.opacity(0.3), lineWidth: 1)
-                )
-        )
     }
 
-    // MARK: - Empty State
+    // MARK: - Components
 
-    private var emptyState: some View {
-        VStack(spacing: DesignSystem.Spacing.md) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(DesignSystem.Colors.tertiaryText)
+    private func sectionHeader(title: String, count: Int) -> some View {
+        HStack {
+            Text(title.uppercased())
+                .font(DS.Typography.sectionTitle)
+                .tracking(0.5)
+                .foregroundStyle(DS.Colors.textMuted)
 
-            VStack(spacing: DesignSystem.Spacing.xs) {
-                Text("No Skills Found")
-                    .font(DesignSystem.Typography.headline)
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+            Spacer()
 
-                Text(emptyStateMessage)
-                    .font(DesignSystem.Typography.bodySecondary)
-                    .foregroundStyle(DesignSystem.Colors.tertiaryText)
-                    .multilineTextAlignment(.center)
+            Text("\(count)")
+                .font(DS.Typography.micro)
+                .fontWeight(.medium)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 1)
+                .background(DS.Colors.bgInput)
+                .foregroundStyle(DS.Colors.textMuted)
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+    }
+
+    private func navItem(
+        icon: String,
+        label: String,
+        badge: String,
+        badgeIsInstalled: Bool,
+        isActive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .frame(width: 16)
+
+                Text(label)
+                    .font(DS.Typography.navItem)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Text(badge)
+                    .font(DS.Typography.caption)
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 1)
+                    .background(badgeIsInstalled
+                        ? Color(hex: 0x22C55E).opacity(0.12)
+                        : Color(hex: 0x3B82F6).opacity(0.12))
+                    .foregroundStyle(badgeIsInstalled ? DS.Colors.green : DS.Colors.accent)
+                    .clipShape(Capsule())
             }
-        }
-        .padding(DesignSystem.Spacing.xxl)
-    }
-
-    // MARK: - Skills List
-
-    private var skillsList: some View {
-        List(library.filteredSkills, id: \.listId, selection: Binding(
-            get: { library.selectedSkill },
-            set: { skill in
-                if let skill {
-                    library.select(skill)
-                }
-            }
-        )) { skill in
-            SkillRowView(skill: skill)
-                .tag(skill)
-        }
-        .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
-    }
-
-    // MARK: - Helpers
-
-    private var headerTitle: String {
-        switch library.selectedSource {
-        case .local:
-            return "Installed Skills"
-        case .remote(let catalogId):
-            if let catalog = library.catalogs.first(where: { $0.id == catalogId }) {
-                return catalog.name
-            }
-            return "Remote Skills"
-        }
-    }
-
-    private var emptyStateMessage: String {
-        if !library.searchQuery.isEmpty {
-            return "No skills match your search"
-        }
-        switch library.selectedSource {
-        case .local:
-            return "No skills installed locally"
-        case .remote:
-            return "No skills found in this repository"
-        }
-    }
-}
-
-// MARK: - Sidebar Settings Button
-
-#if ENABLE_SPARKLE
-struct SidebarSettingsButton: View {
-    let sparkleUpdater: SparkleUpdater?
-
-    var body: some View {
-        SettingsLink {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 12, weight: .medium))
-
-                // Update badge
-                if sparkleUpdater?.isUpdateAvailable == true {
-                    Circle()
-                        .fill(DesignSystem.Colors.success)
-                        .frame(width: 6, height: 6)
-                        .offset(x: 2, y: -2)
+            .padding(.vertical, 7)
+            .padding(.leading, 24)
+            .padding(.trailing, 16)
+            .foregroundStyle(isActive ? DS.Colors.accent : DS.Colors.textSecondary)
+            .background(isActive ? Color(hex: 0x3B82F6).opacity(0.12) : .clear)
+            .overlay(alignment: .leading) {
+                if isActive {
+                    Rectangle()
+                        .fill(DS.Colors.accent)
+                        .frame(width: 2)
                 }
             }
         }
-        .help(sparkleUpdater?.isUpdateAvailable == true ? "Update available - Open Settings" : "Settings")
+        .buttonStyle(.plain)
     }
 }
-#endif

@@ -1,107 +1,138 @@
 import SwiftUI
 import Domain
 
-/// Side-by-side skill editor with live markdown preview
+/// Organism: Split pane markdown editor with live preview
+/// Matches prototype page 06-edit-skill.html + editor.css
 struct SkillEditorView: View {
-    @Bindable var library: SkillLibrary
+    @Bindable var editor: SkillEditor
+    let onSave: () async -> Void
+    let onCancel: () -> Void
 
     var body: some View {
-        if let editor = library.skillEditor {
-            HSplitView {
-                // Left: Editor pane
-                editorPane(editor: editor)
+        VStack(spacing: 0) {
+            topbar
+            editorPanes
+        }
+        .background(DS.Colors.bgPrimary)
+    }
 
-                // Right: Preview pane
-                previewPane(editor: editor)
-            }
-            .frame(minWidth: 800)
-            .navigationTitle("Editing: \(editor.original.name)")
-            .toolbar {
-                ToolbarItemGroup(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        library.cancelEditing()
-                    }
-                    .keyboardShortcut(.cancelAction)
-                }
+    // MARK: - Topbar
 
-                ToolbarItemGroup(placement: .confirmationAction) {
-                    Button {
-                        Task { await library.saveEditing() }
-                    } label: {
-                        Text(editor.isDirty ? "Save" : "Done")
-                    }
-                    .keyboardShortcut("s", modifiers: .command)
-                    .disabled(!editor.isDirty)
-                }
+    private var topbar: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Edit: \(editor.original.name)")
+                    .font(DS.Typography.topbarTitle)
+                    .foregroundStyle(DS.Colors.textPrimary)
+
+                Text("Local skill — ~/.claude/skills/\(editor.original.id)/")
+                    .font(DS.Typography.description)
+                    .foregroundStyle(DS.Colors.textMuted)
             }
+
+            Spacer()
+
+            Button(action: onCancel) {
+                Text("Cancel")
+                    .font(DS.Typography.body)
+                    .fontWeight(.medium)
+                    .foregroundStyle(DS.Colors.textSecondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DS.Radius.sm)
+                            .stroke(DS.Colors.border, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                Task { await onSave() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11))
+                    Text("Save")
+                }
+                .font(DS.Typography.body)
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(DS.Colors.accent)
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+            }
+            .buttonStyle(.plain)
+            .disabled(!editor.isDirty)
+            .opacity(editor.isDirty ? 1.0 : 0.5)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .frame(minHeight: DS.Layout.topbarHeight)
+        .overlay(alignment: .bottom) {
+            Divider().overlay(DS.Colors.border)
         }
     }
 
-    // MARK: - Editor Pane
+    // MARK: - Editor Panes
 
-    private func editorPane(editor: SkillEditor) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Label("Editor", systemImage: "pencil")
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
-
-                Spacer()
-
-                if editor.isDirty {
-                    HStack(spacing: DesignSystem.Spacing.xs) {
-                        Circle()
-                            .fill(DesignSystem.Colors.warning)
-                            .frame(width: 6, height: 6)
+    private var editorPanes: some View {
+        HStack(spacing: 0) {
+            // Left: text editor
+            VStack(spacing: 0) {
+                paneHeader(title: "SKILL.md") {
+                    if editor.isDirty {
                         Text("Modified")
-                            .font(DesignSystem.Typography.micro)
-                            .foregroundStyle(DesignSystem.Colors.warning)
+                            .font(DS.Typography.micro)
+                            .foregroundStyle(DS.Colors.orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: 0xF59E0B).opacity(0.12))
+                            .clipShape(Capsule())
                     }
                 }
+
+                TextEditor(text: $editor.draft)
+                    .font(DS.Typography.editor)
+                    .foregroundStyle(DS.Colors.textPrimary)
+                    .scrollContentBackground(.hidden)
+                    .background(DS.Colors.bgPrimary)
+                    .padding(16)
             }
-            .padding(.horizontal, DesignSystem.Spacing.md)
-            .padding(.vertical, DesignSystem.Spacing.sm)
-            .background(DesignSystem.Colors.cardBackground)
 
-            Divider()
+            Divider().overlay(DS.Colors.border)
 
-            // TextEditor
-            TextEditor(text: Binding(
-                get: { editor.draft },
-                set: { editor.draft = $0 }
-            ))
-            .font(.system(.body, design: .monospaced))
-            .scrollContentBackground(.hidden)
-            .background(Color(nsColor: .textBackgroundColor))
+            // Right: preview
+            VStack(spacing: 0) {
+                paneHeader(title: "Preview") { EmptyView() }
+
+                ScrollView {
+                    Text(editor.draft)
+                        .font(DS.Typography.body)
+                        .foregroundStyle(DS.Colors.textSecondary)
+                        .lineSpacing(5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                }
+            }
         }
     }
 
-    // MARK: - Preview Pane
+    private func paneHeader<Trailing: View>(title: String, @ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack {
+            Text(title)
+                .font(DS.Typography.sectionTitle)
+                .tracking(0.5)
+                .foregroundStyle(DS.Colors.textMuted)
 
-    private func previewPane(editor: SkillEditor) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                Label("Preview", systemImage: "eye")
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+            Spacer()
 
-                Spacer()
-            }
-            .padding(.horizontal, DesignSystem.Spacing.md)
-            .padding(.vertical, DesignSystem.Spacing.sm)
-            .background(DesignSystem.Colors.cardBackground)
-
-            Divider()
-
-            // Live MarkdownView preview
-            ScrollView {
-                MarkdownView(content: editor.draft)
-                    .padding(DesignSystem.Spacing.xl)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .background(Color(nsColor: .textBackgroundColor))
+            trailing()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .overlay(alignment: .bottom) {
+            Divider().overlay(DS.Colors.border)
         }
     }
 }

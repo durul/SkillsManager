@@ -1,254 +1,281 @@
 import SwiftUI
 import Domain
-import Infrastructure
 
+/// Sheet: Install a skill and link to providers
+/// Matches prototype page 04-install.html install modal
 struct InstallSheet: View {
     let skill: Skill
     @Bindable var library: SkillLibrary
-    @Binding var isPresented: Bool
+    @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedProviders: Set<Provider> = []
-    @State private var isInstalling = false
+    @State private var selectedProviders: Set<Provider> = Set(Provider.allCases)
+    @State private var phase: Phase = .configure
+
+    enum Phase {
+        case configure
+        case installing
+        case success
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: DesignSystem.Spacing.md) {
-                // Icon with subtle gradient background
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    DesignSystem.Colors.accent.opacity(0.2),
-                                    DesignSystem.Colors.accent.opacity(0.05)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 64, height: 64)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Install \(skill.displayName)")
+                    .font(DS.Typography.topbarTitle)
+                    .foregroundStyle(DS.Colors.textPrimary)
 
-                    Image(systemName: "square.and.arrow.down.on.square")
-                        .font(.system(size: 26, weight: .medium))
-                        .foregroundStyle(DesignSystem.Colors.accent)
-                }
+                Text("Install to central storage and link to providers")
+                    .font(DS.Typography.description)
+                    .foregroundStyle(DS.Colors.textMuted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
+            .overlay(alignment: .bottom) {
+                Divider().overlay(DS.Colors.border)
+            }
 
-                VStack(spacing: DesignSystem.Spacing.xs) {
-                    Text("Install Skill")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundStyle(DesignSystem.Colors.primaryText)
-
-                    Text("Choose where to install")
-                        .font(DesignSystem.Typography.bodySecondary)
-                        .foregroundStyle(DesignSystem.Colors.secondaryText)
-
-                    Text(skill.name)
-                        .font(DesignSystem.Typography.headline)
-                        .foregroundStyle(DesignSystem.Colors.accent)
+            // Body
+            VStack(spacing: 0) {
+                switch phase {
+                case .configure:
+                    configureBody
+                case .installing:
+                    installingBody
+                case .success:
+                    successBody
                 }
             }
-            .padding(.top, DesignSystem.Spacing.xxl)
-            .padding(.bottom, DesignSystem.Spacing.xl)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
 
-            // Provider cards
-            VStack(spacing: DesignSystem.Spacing.sm) {
-                ForEach(Provider.allCases, id: \.self) { provider in
-                    ProviderCard(
-                        provider: provider,
-                        isSelected: selectedProviders.contains(provider),
-                        isAlreadyInstalled: skill.isInstalledFor(provider)
-                    ) {
-                        toggleProvider(provider)
-                    }
-                }
-            }
-            .padding(.horizontal, DesignSystem.Spacing.xl)
-
-            Spacer()
-
-            // Buttons
-            HStack(spacing: DesignSystem.Spacing.md) {
-                Button {
-                    isPresented = false
-                } label: {
-                    Text("Cancel")
-                        .font(DesignSystem.Typography.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignSystem.Spacing.sm)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .keyboardShortcut(.cancelAction)
-
-                Button {
-                    isInstalling = true
-                    Task {
-                        await library.install(to: selectedProviders)
-                        isInstalling = false
-                        isPresented = false
-                    }
-                } label: {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        if isInstalling {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(.white)
-                        }
-                        Text(isInstalling ? "Installing..." : "Install")
-                            .font(DesignSystem.Typography.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignSystem.Spacing.sm)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-                .disabled(selectedProviders.isEmpty || isInstalling)
-            }
-            .padding(.horizontal, DesignSystem.Spacing.xl)
-            .padding(.bottom, DesignSystem.Spacing.xl)
+            // Footer
+            footerView
         }
-        .frame(width: 360, height: 380)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .onAppear {
-            selectedProviders = Set(Provider.allCases.filter { !skill.isInstalledFor($0) })
+        .frame(width: 420)
+        .background(DS.Colors.bgSecondary)
+    }
+
+    // MARK: - Configure
+
+    private var configureBody: some View {
+        VStack(spacing: 16) {
+            StoragePath(label: "Install to", path: "~/.agent/skills/\(skill.id)/")
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "link")
+                        .font(.system(size: 10))
+                    Text("Link to providers")
+                        .font(DS.Typography.caption)
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(DS.Colors.textMuted)
+
+                VStack(spacing: 8) {
+                    ForEach(Provider.allCases) { provider in
+                        providerCheckbox(provider)
+                    }
+                }
+            }
         }
     }
 
-    private func toggleProvider(_ provider: Provider) {
-        withAnimation(DesignSystem.Animation.quick) {
-            if selectedProviders.contains(provider) {
+    private func providerCheckbox(_ provider: Provider) -> some View {
+        let isChecked = selectedProviders.contains(provider)
+
+        return Button {
+            if isChecked {
                 selectedProviders.remove(provider)
             } else {
                 selectedProviders.insert(provider)
             }
-        }
-    }
-}
+        } label: {
+            HStack(spacing: 12) {
+                Text(provider == .claude ? "C" : "X")
+                    .font(.system(size: 14, weight: .bold))
+                    .frame(width: 36, height: 36)
+                    .background(provider == .claude
+                        ? Color(hex: 0x3B82F6).opacity(0.12)
+                        : Color(hex: 0x22C55E).opacity(0.12))
+                    .foregroundStyle(provider == .claude ? DS.Colors.accent : DS.Colors.green)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
 
-// MARK: - Provider Card
-
-struct ProviderCard: View {
-    let provider: Provider
-    let isSelected: Bool
-    let isAlreadyInstalled: Bool
-    let onToggle: () -> Void
-
-    @State private var isHovering = false
-
-    var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: DesignSystem.Spacing.md) {
-                // Provider icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: DesignSystem.Radius.medium, style: .continuous)
-                        .fill(iconBackgroundColor)
-                        .frame(width: 44, height: 44)
-
-                    Image(systemName: providerIcon)
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(iconColor)
-                }
-
-                // Provider info
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        Text(provider.displayName)
-                            .font(DesignSystem.Typography.headline)
-                            .foregroundStyle(isAlreadyInstalled ? DesignSystem.Colors.secondaryText : DesignSystem.Colors.primaryText)
+                    Text(provider.displayName)
+                        .font(DS.Typography.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(DS.Colors.textPrimary)
 
-                        if isAlreadyInstalled {
-                            RefinedBadge(text: "Installed", style: .success)
-                        }
-                    }
-
-                    Text(shortenedPath)
-                        .font(DesignSystem.Typography.caption)
-                        .foregroundStyle(DesignSystem.Colors.tertiaryText)
-                        .lineLimit(1)
+                    Text(provider == .claude
+                        ? "~/.claude/skills/\(skill.id) \u{2192}"
+                        : "~/.codex/skills/\(skill.id) \u{2192}")
+                        .font(DS.Typography.monoSmall)
+                        .foregroundStyle(DS.Colors.textMuted)
                 }
 
                 Spacer()
 
                 // Checkbox
-                ZStack {
-                    Circle()
-                        .stroke(borderColor, lineWidth: 2)
-                        .frame(width: 22, height: 22)
-
-                    if isSelected || isAlreadyInstalled {
-                        Circle()
-                            .fill(fillColor)
-                            .frame(width: 22, height: 22)
-
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                }
-            }
-            .padding(DesignSystem.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: DesignSystem.Radius.large, style: .continuous)
-                    .fill(DesignSystem.Colors.cardBackground)
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(isChecked ? DS.Colors.accent : .clear)
+                    .frame(width: 18, height: 18)
                     .overlay(
-                        RoundedRectangle(cornerRadius: DesignSystem.Radius.large, style: .continuous)
-                            .stroke(
-                                isSelected && !isAlreadyInstalled ? DesignSystem.Colors.accent.opacity(0.5) :
-                                    (isHovering && !isAlreadyInstalled ? DesignSystem.Colors.subtleBorder : .clear),
-                                lineWidth: isSelected && !isAlreadyInstalled ? 2 : 1
-                            )
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(isChecked ? DS.Colors.accent : DS.Colors.border, lineWidth: 2)
                     )
-            )
-            .shadow(
-                color: isHovering && !isAlreadyInstalled ? DesignSystem.Shadows.subtle.color : .clear,
-                radius: DesignSystem.Shadows.subtle.radius,
-                y: DesignSystem.Shadows.subtle.y
+                    .overlay {
+                        if isChecked {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+            }
+            .padding(12)
+            .background(isChecked ? Color(hex: 0x3B82F6).opacity(0.06) : DS.Colors.bgInput)
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.sm)
+                    .stroke(DS.Colors.border, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
-        .disabled(isAlreadyInstalled)
-        .onHover { hovering in
-            withAnimation(DesignSystem.Animation.quick) {
-                isHovering = hovering
+    }
+
+    // MARK: - Installing
+
+    private var installingBody: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+                .scaleEffect(1.2)
+                .padding(.bottom, 4)
+
+            Text("Installing to ~/.agent/skills/...")
+                .font(DS.Typography.body)
+                .foregroundStyle(DS.Colors.textSecondary)
+
+            Text("Linking to \(selectedProviderNames)")
+                .font(DS.Typography.caption)
+                .foregroundStyle(DS.Colors.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
+    // MARK: - Success
+
+    private var successBody: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 18))
+                .foregroundStyle(DS.Colors.green)
+                .frame(width: 48, height: 48)
+                .background(Color(hex: 0x22C55E).opacity(0.12))
+                .clipShape(Circle())
+                .padding(.bottom, 4)
+
+            Text("Installed & Linked")
+                .font(DS.Typography.cardName)
+                .foregroundStyle(DS.Colors.textPrimary)
+
+            VStack(spacing: 2) {
+                Text("Stored in ")
+                    .font(DS.Typography.description)
+                    .foregroundStyle(DS.Colors.textMuted)
+                +
+                Text("~/.agent/skills/\(skill.id)/")
+                    .font(DS.Typography.monoSmall)
+                    .foregroundStyle(DS.Colors.textMuted)
+
+                Text("Linked to \(selectedProviderNames)")
+                    .font(DS.Typography.description)
+                    .foregroundStyle(DS.Colors.textMuted)
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
     }
 
-    private var providerIcon: String {
-        switch provider {
-        case .codex: return "terminal"
-        case .claude: return "message"
+    // MARK: - Footer
+
+    private var footerView: some View {
+        HStack {
+            Spacer()
+
+            switch phase {
+            case .configure:
+                Button { dismiss() } label: {
+                    Text("Cancel")
+                        .font(DS.Typography.body)
+                        .fontWeight(.medium)
+                        .foregroundStyle(DS.Colors.textSecondary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DS.Radius.sm)
+                                .stroke(DS.Colors.border, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+
+                Button { install() } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 11))
+                        Text("Install & Link")
+                    }
+                    .font(DS.Typography.body)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(DS.Colors.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                }
+                .buttonStyle(.plain)
+                .disabled(selectedProviders.isEmpty)
+
+            case .installing:
+                EmptyView()
+
+            case .success:
+                Button { dismiss() } label: {
+                    Text("Done")
+                        .font(DS.Typography.body)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(DS.Colors.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .overlay(alignment: .top) {
+            Divider().overlay(DS.Colors.border)
         }
     }
 
-    private var iconBackgroundColor: Color {
-        switch provider {
-        case .codex: return DesignSystem.Colors.codexGreen.opacity(0.15)
-        case .claude: return DesignSystem.Colors.claudeBlue.opacity(0.15)
+    // MARK: - Actions
+
+    private func install() {
+        phase = .installing
+        Task {
+            await library.install(to: selectedProviders)
+            phase = .success
         }
     }
 
-    private var iconColor: Color {
-        switch provider {
-        case .codex: return DesignSystem.Colors.codexGreen
-        case .claude: return DesignSystem.Colors.claudeBlue
-        }
-    }
-
-    private var borderColor: Color {
-        if isAlreadyInstalled { return DesignSystem.Colors.tertiaryText.opacity(0.3) }
-        return isSelected ? DesignSystem.Colors.accent : DesignSystem.Colors.tertiaryText.opacity(0.4)
-    }
-
-    private var fillColor: Color {
-        isAlreadyInstalled ? DesignSystem.Colors.tertiaryText.opacity(0.5) : DesignSystem.Colors.accent
-    }
-
-    private var shortenedPath: String {
-        let pathResolver = ProviderPathResolver()
-        return pathResolver.skillsPath(for: provider)
-            .replacingOccurrences(of: FileManager.default.homeDirectoryForCurrentUser.path, with: "~")
+    private var selectedProviderNames: String {
+        selectedProviders
+            .sorted(by: { $0.rawValue < $1.rawValue })
+            .map(\.displayName)
+            .joined(separator: " and ")
     }
 }
