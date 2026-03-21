@@ -32,6 +32,15 @@ struct SidebarView: View {
             .padding(.horizontal, DesignSystem.Spacing.md)
             .padding(.vertical, DesignSystem.Spacing.md)
 
+            // Category tabs (auto-generated from tags)
+            if !library.selectedCatalog.allTags.isEmpty {
+                CategoryTabsBar(
+                    tags: library.selectedCatalog.allTags,
+                    skillCounts: library.tagCounts,
+                    selectedTag: $library.selectedTag
+                )
+            }
+
             // Subtle divider
             Rectangle()
                 .fill(DesignSystem.Colors.subtleBorder)

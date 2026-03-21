@@ -151,47 +151,51 @@ struct SkillDetailView: View {
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
 
-            // Metadata row
-            HStack(spacing: DesignSystem.Spacing.lg) {
-                // Version
-                metadataItem(icon: "tag", label: "Version", value: "v\(skill.version)")
-
-                // References
-                if skill.hasReferences {
-                    metadataItem(
-                        icon: "doc.text",
-                        label: "References",
-                        value: "\(skill.referenceCount)"
-                    )
-                }
-
-                // Scripts
-                if skill.hasScripts {
-                    metadataItem(
-                        icon: "terminal",
-                        label: "Scripts",
-                        value: "\(skill.scriptCount)"
-                    )
+            // Tags
+            if !skill.tags.isEmpty {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    Text("Tags")
+                        .font(DesignSystem.Typography.micro)
+                        .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                        .textCase(.uppercase)
+                    FlowLayout(spacing: DesignSystem.Spacing.xs) {
+                        ForEach(skill.tags, id: \.self) { tag in
+                            TagChip(text: tag)
+                        }
+                    }
                 }
             }
 
-            // Provider badges with uninstall
+            // Metadata row
+            HStack(spacing: DesignSystem.Spacing.lg) {
+                metadataItem(icon: "tag", label: "Version", value: "v\(skill.version)")
+                if skill.hasReferences {
+                    metadataItem(icon: "doc.text", label: "References", value: "\(skill.referenceCount)")
+                }
+                if skill.hasScripts {
+                    metadataItem(icon: "terminal", label: "Scripts", value: "\(skill.scriptCount)")
+                }
+            }
+
+            // Storage path
+            if skill.isInstalled {
+                StoragePath(label: "Installed at", path: "~/.agent/skills/\(skill.id)/")
+            }
+
+            // Linked providers
             if skill.isInstalled {
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                    Text("Installed for")
-                        .font(DesignSystem.Typography.caption)
+                    Text("Linked Providers")
+                        .font(DesignSystem.Typography.micro)
                         .foregroundStyle(DesignSystem.Colors.tertiaryText)
+                        .textCase(.uppercase)
 
-                    HStack(spacing: DesignSystem.Spacing.sm) {
-                        ForEach(Array(skill.installedProviders), id: \.self) { provider in
-                            ProviderBadge(
-                                provider: provider,
-                                onUninstall: {
-                                    providerToUninstall = provider
-                                    showingUninstallConfirmation = true
-                                }
-                            )
-                        }
+                    ForEach(Provider.allCases) { provider in
+                        ProviderLinkCard(
+                            provider: provider,
+                            isLinked: skill.isInstalledFor(provider),
+                            path: provider == .claude ? "~/.claude/skills/" : "~/.codex/skills/"
+                        )
                     }
                 }
             }

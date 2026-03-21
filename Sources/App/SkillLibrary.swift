@@ -31,6 +31,9 @@ public final class SkillLibrary {
     /// Search query
     public var searchQuery: String = ""
 
+    /// Selected tag filter (nil = show all)
+    public var selectedTag: String?
+
     // MARK: - Loading State
 
     /// Loading state - computed from selected catalog
@@ -63,11 +66,32 @@ public final class SkillLibrary {
         }
     }
 
-    /// Filtered skills based on source and search
+    /// Filtered skills based on source, tag, and search
     public var filteredSkills: [Skill] {
-        let sourceSkills = selectedCatalog.skills
-        guard !searchQuery.isEmpty else { return sourceSkills }
-        return sourceSkills.filter { $0.matches(query: searchQuery) }
+        var skills = selectedCatalog.skills
+
+        // Filter by tag
+        if let tag = selectedTag {
+            skills = skills.filter { $0.tags.contains(tag) }
+        }
+
+        // Filter by search
+        if !searchQuery.isEmpty {
+            skills = skills.filter { $0.matches(query: searchQuery) }
+        }
+
+        return skills
+    }
+
+    /// Tag counts for the current catalog's skills
+    public var tagCounts: [String: Int] {
+        var counts: [String: Int] = [:]
+        for skill in selectedCatalog.skills {
+            for tag in skill.tags {
+                counts[tag, default: 0] += 1
+            }
+        }
+        return counts
     }
 
     /// Count of local skills
