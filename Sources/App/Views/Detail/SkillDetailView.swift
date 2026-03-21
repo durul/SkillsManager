@@ -90,11 +90,7 @@ struct SkillDetailView: View {
 
     private var tagsSection: some View {
         detailSection("Tags") {
-            FlowLayout(spacing: 6) {
-                ForEach(skill.tags, id: \.self) { tag in
-                    TagChip.category(tag)
-                }
-            }
+            EditableTagsView(skill: skill, library: library)
         }
     }
 
