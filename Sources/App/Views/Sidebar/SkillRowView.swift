@@ -31,10 +31,15 @@ struct SkillRowView: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            // Tags row
+            // Metadata row
             HStack(spacing: DesignSystem.Spacing.xs) {
                 // Version badge
                 RefinedBadge(text: "v\(skill.version)", style: .version)
+
+                // Tags from SKILL.md
+                ForEach(skill.tags.prefix(3), id: \.self) { tag in
+                    TagChip(text: tag)
+                }
 
                 // Provider badges
                 ForEach(Array(skill.installedProviders), id: \.self) { provider in
