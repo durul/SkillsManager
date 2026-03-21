@@ -87,18 +87,27 @@ function renderAddCatalogModal() {
 // ===== PAGE NAV (prototype navigation) =====
 function renderPageNav(activePage) {
   const pages = [
-    { id: 'browse', label: 'Browse', file: 'index.html' },
-    { id: 'editor', label: 'Editor', file: 'pages/editor.html' },
-    { id: 'install', label: 'Install', file: 'pages/install.html' },
+    { id: '01-first-launch',  label: '1. First Launch' },
+    { id: '02-add-catalog',   label: '2. Add Catalog' },
+    { id: '03-browse',        label: '3. Browse' },
+    { id: '04-install',       label: '4. Install' },
+    { id: '05-uninstall',     label: '5. Uninstall' },
+    { id: '06-edit-skill',    label: '6. Edit' },
   ];
+
+  // Detect if we're at root (index.html) or in pages/
+  const inPages = location.pathname.includes('/pages/');
+  const prefix = inPages ? '' : 'pages/';
+
   const btns = pages.map(p => {
     const isActive = p.id === activePage;
+    const href = `${prefix}${p.id}.html`;
     const style = isActive
       ? 'background:var(--accent);color:white;border:none;'
       : 'background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);';
-    return `<a href="${p.id === 'browse' ? '../index.html' : (activePage === 'browse' ? 'pages/' + p.file.replace('pages/','') : p.file.replace('pages/',''))}" style="${style}padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font-sans);text-decoration:none;">${p.label}</a>`;
+    return `<a href="${href}" style="${style}padding:4px 10px;border-radius:16px;font-size:11px;cursor:pointer;font-family:var(--font-sans);text-decoration:none;white-space:nowrap;">${p.label}</a>`;
   }).join('');
-  return `<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:200;background:var(--bg-secondary);padding:6px 10px;border-radius:24px;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,0.4);">${btns}</div>`;
+  return `<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:200;background:var(--bg-secondary);padding:5px 8px;border-radius:24px;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,0.4);">${btns}</div>`;
 }
 
 // ===== SHARED INTERACTIONS =====

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — 2. Add Catalog</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../components/tokens.css">
+<link rel="stylesheet" href="../components/layout.css">
+<link rel="stylesheet" href="../components/buttons.css">
+<link rel="stylesheet" href="../components/sidebar.css">
+<link rel="stylesheet" href="../components/skill-card.css">
+<link rel="stylesheet" href="../components/modal.css">
+<style>
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+}
+.loading-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--text-secondary); }
+.loading-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* Step progress */
+.step-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.step-dot {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+}
+.step-dot.done { background: var(--green); border-color: var(--green); color: white; }
+.step-dot.active { background: var(--accent); border-color: var(--accent); color: white; }
+.step-line { flex: 1; height: 2px; background: var(--border); max-width: 40px; }
+.step-line.done { background: var(--green); }
+.step-label { font-size: 12px; color: var(--text-muted); margin-left: 8px; }
+.step-label.active { color: var(--text-primary); font-weight: 500; }
+
+/* Success banner */
+.success-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--green-subtle);
+  border-bottom: 1px solid rgba(34,197,94,0.2);
+}
+.success-banner svg { width: 16px; height: 16px; color: var(--green); flex-shrink: 0; }
+.success-banner-text { font-size: 13px; color: var(--green); font-weight: 500; }
+.success-banner-sub { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app-root"></div>
+
+<script src="../components/icons.js"></script>
+<script src="../components/app-shell.js"></script>
+<script>
+// ===== JOURNEY 2: Add Catalog Flow =====
+// Step A: Modal to enter URL → Step B: Loading/cloning → Step C: Catalog loaded with skills
+
+let currentStep = 'result'; // 'modal', 'loading', 'result'
+
+function renderPage() {
+  // After adding catalog, sidebar shows it
+  const sidebar = `
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>${Icons.book} Skills Manager</h1>
+    </div>
+    <div class="search-box">
+      ${Icons.search}
+      <input type="text" placeholder="Search skills..." />
+    </div>
+    <div class="source-sections">
+      <div class="source-section">
+        <div class="source-header"><span>Installed</span><span class="count">0</span></div>
+        <div class="nav-item" onclick="setActiveNav(this)">
+          ${Icons.folder} All Installed <span class="badge installed">0</span>
+        </div>
+      </div>
+      <div class="source-section">
+        <div class="source-header"><span>Catalogs</span><span class="count">1</span></div>
+        <div class="nav-item active" onclick="setActiveNav(this)">
+          ${Icons.github} Anthropic Skills <span class="badge">24</span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-add-catalog" onclick="showModal('modal-add-catalog')">
+        ${Icons.plus} Add Catalog
+      </button>
+    </div>
+  </aside>`;
+
+  const main = `
+  <main class="main">
+    <div class="step-bar">
+      <div class="step-dot done">${Icons.check}</div>
+      <div class="step-label">Add URL</div>
+      <div class="step-line done"></div>
+      <div class="step-dot done">${Icons.check}</div>
+      <div class="step-label">Clone</div>
+      <div class="step-line done"></div>
+      <div class="step-dot active">3</div>
+      <div class="step-label active">Browse Skills</div>
+    </div>
+
+    <div class="success-banner">
+      ${Icons.check}
+      <span class="success-banner-text">Catalog added successfully</span>
+      <span class="success-banner-sub">24 skills found in anthropics/skills</span>
+    </div>
+
+    <div class="topbar" style="border-top:none;">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">Anthropic Skills</div>
+          <div class="topbar-subtitle">24 skills &mdash; github.com/anthropics/skills</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-icon" title="Refresh">${Icons.refresh}</button>
+      </div>
+    </div>
+
+    <div class="category-tabs">
+      <div class="category-tab active" onclick="selectTab(this)">All <span style="color:var(--text-muted);font-size:10px;">24</span></div>
+      <div class="category-tab" onclick="selectTab(this)">development <span style="color:var(--text-muted);font-size:10px;">8</span></div>
+      <div class="category-tab" onclick="selectTab(this)">design <span style="color:var(--text-muted);font-size:10px;">5</span></div>
+      <div class="category-tab" onclick="selectTab(this)">devops <span style="color:var(--text-muted);font-size:10px;">4</span></div>
+      <div class="category-tab" onclick="selectTab(this)">documentation <span style="color:var(--text-muted);font-size:10px;">3</span></div>
+      <div class="category-tab" onclick="selectTab(this)">testing <span style="color:var(--text-muted);font-size:10px;">2</span></div>
+      <div class="category-tab" onclick="selectTab(this)">ai <span style="color:var(--text-muted);font-size:10px;">2</span></div>
+    </div>
+
+    <div style="padding:12px 24px 0;">
+      <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+        ${Icons.book}
+        <span>Tags auto-detected from SKILL.md frontmatter</span>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div class="skills-grid">
+        ${card('Swift Concurrency', 'Expert guidance on async/await, actors, Sendable, and Swift 6 migration.', '2.1.0', ['development', 'swift'])}
+        ${card('UI/UX Pro Max', '50+ design styles, 97 color palettes, and UX guidelines.', '1.5.0', ['design', 'ui'])}
+        ${card('TDD Chicago School', 'State-based TDD with emergent design. Chicago School principles.', '1.0.0', ['testing', 'tdd'])}
+        ${card('Xcode Cloud CI/CD', 'Manage Xcode Cloud workflows, trigger builds, check status.', '1.2.0', ['devops', 'ci'])}
+        ${card('Feature Development', 'Guided feature dev with codebase understanding and code review.', '3.0.0', ['development'])}
+        ${card('App Store Changelog', 'Generate release notes from git history and tags automatically.', '1.0.0', ['documentation'])}
+        ${card('Claude API', 'Build apps with Claude API and Anthropic SDK. Tool use, agents.', '2.0.0', ['ai', 'api'])}
+        ${card('SwiftUI Expert', 'State management, view composition, iOS 26+ Liquid Glass.', '1.3.0', ['development', 'swift'])}
+      </div>
+    </div>
+  </main>`;
+
+  document.getElementById('app-root').innerHTML = sidebar + main;
+  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
+  document.body.insertAdjacentHTML('beforeend', renderPageNav('02-add-catalog'));
+}
+
+function card(name, desc, version, tags) {
+  const tagHtml = tags.map(t => `<span class="tag tag-category">${t}</span>`).join('');
+  return `
+  <div class="skill-card" onclick="selectCard(this)">
+    <div class="skill-card-header">
+      <div class="skill-card-name">${name}</div>
+      <div class="skill-card-actions">
+        <button class="btn-icon" title="Install">${Icons.download}</button>
+      </div>
+    </div>
+    <div class="skill-card-desc">${desc}</div>
+    <div class="skill-card-meta">
+      <span class="tag tag-version">v${version}</span>
+      ${tagHtml}
+    </div>
+  </div>`;
+}
+
+renderPage();
+</script>
+</body>
+</html>

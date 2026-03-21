@@ -3,199 +3,189 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SkillsManager — Browse</title>
+<title>SkillsManager — UI Prototype</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="components/tokens.css">
-<link rel="stylesheet" href="components/layout.css">
-<link rel="stylesheet" href="components/buttons.css">
-<link rel="stylesheet" href="components/sidebar.css">
-<link rel="stylesheet" href="components/skill-card.css">
-<link rel="stylesheet" href="components/detail-panel.css">
-<link rel="stylesheet" href="components/modal.css">
+<style>
+.journey-map {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 0 24px;
+}
+.journey-map h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+.journey-map .subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+.journey-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.journey-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 200ms ease;
+  text-decoration: none;
+  color: inherit;
+}
+.journey-card:hover {
+  border-color: var(--border-light);
+  background: var(--bg-card-hover);
+  transform: translateX(4px);
+  box-shadow: var(--shadow);
+}
+.journey-num {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.journey-num.blue { background: var(--accent-subtle); color: var(--accent); }
+.journey-num.green { background: var(--green-subtle); color: var(--green); }
+.journey-num.purple { background: var(--purple-subtle); color: var(--purple); }
+.journey-num.orange { background: var(--orange-subtle); color: var(--orange); }
+.journey-num.red { background: var(--red-subtle); color: var(--red); }
+.journey-num.cyan { background: var(--cyan-subtle); color: var(--cyan); }
+.journey-info { flex: 1; }
+.journey-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.journey-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.journey-arrow { color: var(--text-muted); font-size: 18px; }
+
+.journey-connector {
+  width: 2px;
+  height: 12px;
+  background: var(--border);
+  margin-left: 37px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 24px 0 12px;
+  padding-left: 56px;
+}
+
+.design-note {
+  margin-top: 40px;
+  padding: 16px 20px;
+  background: var(--accent-subtle);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.design-note strong { color: var(--accent); }
+</style>
 </head>
-<body>
+<body style="overflow:auto;">
 
-<div class="app detail-open" id="app-root"></div>
+<div class="journey-map">
+  <h1>SkillsManager UI Prototype</h1>
+  <div class="subtitle">
+    Complete user journey flow. Click each step to view the interactive prototype.<br>
+    Categories are auto-derived from a proposed <code style="background:var(--accent-subtle);padding:1px 5px;border-radius:3px;color:var(--accent);font-family:var(--font-mono);font-size:12px;">tags</code> field in SKILL.md frontmatter.
+  </div>
 
-<script src="components/icons.js"></script>
-<script src="components/app-shell.js"></script>
-<script>
-// ===== PAGE: Browse & Discover =====
-function renderBrowsePage() {
-  const sidebar = renderSidebar({ activeNav: 'all-installed' });
+  <div class="section-label">Getting Started</div>
 
-  const main = `
-  <main class="main">
-    <div class="topbar">
-      <div class="topbar-left">
-        <div>
-          <div class="topbar-title">All Installed Skills</div>
-          <div class="topbar-subtitle">12 skills across 2 providers</div>
-        </div>
+  <div class="journey-flow">
+    <a class="journey-card" href="pages/01-first-launch.html">
+      <div class="journey-num blue">1</div>
+      <div class="journey-info">
+        <div class="journey-title">First Launch</div>
+        <div class="journey-desc">Empty state. No catalogs, no skills. User guided to add their first catalog.</div>
       </div>
-      <div class="topbar-right">
-        <div class="view-toggle">
-          <button class="active" title="Grid view">${Icons.gridView}</button>
-          <button title="List view">${Icons.listView}</button>
-        </div>
-        <button class="btn-icon" title="Refresh">${Icons.refresh}</button>
-      </div>
-    </div>
+      <div class="journey-arrow">&rarr;</div>
+    </a>
 
-    <div class="category-tabs">
-      <div class="category-tab active" onclick="selectTab(this)">All</div>
-      <div class="category-tab" onclick="selectTab(this)">Development</div>
-      <div class="category-tab" onclick="selectTab(this)">Design</div>
-      <div class="category-tab" onclick="selectTab(this)">DevOps</div>
-      <div class="category-tab" onclick="selectTab(this)">Documentation</div>
-      <div class="category-tab" onclick="selectTab(this)">Testing</div>
-      <div class="category-tab" onclick="selectTab(this)">AI / LLM</div>
-    </div>
+    <div class="journey-connector"></div>
 
-    <div style="padding-top: 16px;">
-      <div class="stats-bar">
-        <div class="stat">
-          <div class="stat-icon blue">${Icons.book}</div>
-          <div><div class="stat-value">38</div><div class="stat-label">Total Skills</div></div>
-        </div>
-        <div class="stat">
-          <div class="stat-icon green">${Icons.check}</div>
-          <div><div class="stat-value">12</div><div class="stat-label">Installed</div></div>
-        </div>
-        <div class="stat">
-          <div class="stat-icon purple">${Icons.github}</div>
-          <div><div class="stat-value">3</div><div class="stat-label">Catalogs</div></div>
-        </div>
-        <div class="stat">
-          <div class="stat-icon orange">${Icons.edit}</div>
-          <div><div class="stat-value">4</div><div class="stat-label">Custom</div></div>
-        </div>
+    <a class="journey-card" href="pages/02-add-catalog.html">
+      <div class="journey-num purple">2</div>
+      <div class="journey-info">
+        <div class="journey-title">Add Catalog</div>
+        <div class="journey-desc">Enter GitHub URL or browse local folder. Clone/load. Catalog appears with skills. Tags auto-detected.</div>
       </div>
-    </div>
+      <div class="journey-arrow">&rarr;</div>
+    </a>
+  </div>
 
-    <div class="content-area">
-      <div class="skills-grid">
-        ${skillCard({ name: 'Swift Concurrency', desc: 'Expert guidance on async/await, actors, Sendable, and Swift 6 migration patterns.', version: '2.1.0', category: 'Development', installed: true, providers: ['claude', 'codex'], selected: true })}
-        ${skillCard({ name: 'UI/UX Pro Max', desc: '50+ design styles, 97 color palettes, and UX guidelines for building professional interfaces.', version: '1.5.0', category: 'Design', installed: true, providers: ['claude'], refs: 3, scripts: 2 })}
-        ${skillCard({ name: 'TDD Chicago School', desc: 'State-based TDD with emergent design for Kotlin projects. Chicago School principles.', version: '1.0.0', category: 'Testing', installed: true, providers: ['claude'] })}
-        ${skillCard({ name: 'Xcode Cloud CI/CD', desc: 'Manage Xcode Cloud CI/CD workflows, trigger builds, check status, and monitor pipelines.', version: '1.2.0', category: 'DevOps', installed: false })}
-        ${skillCard({ name: 'Feature Development', desc: 'Guided feature development with codebase understanding, architecture focus, and code review.', version: '3.0.0', category: 'Development', installed: true, providers: ['claude', 'codex'] })}
-        ${skillCard({ name: 'App Store Changelog', desc: 'Generate user-facing App Store release notes from git history and tags automatically.', version: '1.0.0', category: 'Documentation', installed: false })}
-        ${skillCard({ name: 'Claude API', desc: 'Build apps with Claude API and Anthropic SDK. Tool use, agent patterns, streaming.', version: '2.0.0', category: 'AI / LLM', installed: true, providers: ['claude'], refs: 5 })}
-        ${skillCard({ name: 'SwiftUI Expert', desc: 'Best practices for state management, view composition, performance, and iOS 26+ Liquid Glass.', version: '1.3.0', category: 'Development', installed: false, scripts: 1 })}
-      </div>
-    </div>
-  </main>`;
+  <div class="section-label">Daily Use</div>
 
-  const detail = renderDetailPanel({
-    name: 'Swift Concurrency',
-    source: 'Anthropic Skills',
-    sourceIcon: Icons.github,
-    desc: 'Expert guidance on Swift Concurrency best practices, patterns, and implementation. Covers async/await, actors, Sendable conformance, @MainActor isolation, and Swift 6 migration strategies.',
-    version: '2.1.0',
-    refs: '3 files',
-    scripts: '1 file',
-    sourceType: 'GitHub',
-    providers: [
-      { name: 'Claude Code', path: '~/.claude/skills/', icon: 'claude', installed: true },
-      { name: 'Codex', path: '~/.codex/skills/', icon: 'codex', installed: true },
-    ],
-    fullyInstalled: true,
-  });
+  <div class="journey-flow">
+    <a class="journey-card" href="pages/03-browse.html">
+      <div class="journey-num green">3</div>
+      <div class="journey-info">
+        <div class="journey-title">Browse & Discover</div>
+        <div class="journey-desc">Browse installed skills. Filter by auto-tags (development, design, testing...). View detail panel.</div>
+      </div>
+      <div class="journey-arrow">&rarr;</div>
+    </a>
 
-  document.getElementById('app-root').innerHTML = sidebar + main + detail;
-  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
-  document.body.insertAdjacentHTML('beforeend', renderPageNav('browse'));
-}
+    <div class="journey-connector"></div>
 
-// ===== Skill Card Component =====
-function skillCard({ name, desc, version, category, installed, providers = [], refs, scripts, selected }) {
-  const dot = installed ? '<span class="dot"></span>' : '';
-  const providerTags = providers.map(p => `<span class="tag tag-${p}">${p === 'claude' ? 'Claude Code' : 'Codex'}</span>`).join('');
-  const refTag = refs ? `<span class="tag tag-refs">${refs} refs</span>` : '';
-  const scriptTag = scripts ? `<span class="tag tag-scripts">${scripts} scripts</span>` : '';
-  return `
-  <div class="skill-card${selected ? ' selected' : ''}" onclick="selectCard(this)">
-    <div class="skill-card-header">
-      <div class="skill-card-name">${dot}${name}</div>
-      <div class="skill-card-actions">
-        <button class="btn-icon" title="Install">${Icons.download}</button>
+    <a class="journey-card" href="pages/04-install.html">
+      <div class="journey-num orange">4</div>
+      <div class="journey-info">
+        <div class="journey-title">Install Skill</div>
+        <div class="journey-desc">Browse remote catalog. Select skill. Choose providers (Claude Code / Codex). Progress + success.</div>
       </div>
-    </div>
-    <div class="skill-card-desc">${desc}</div>
-    <div class="skill-card-meta">
-      <span class="tag tag-version">v${version}</span>
-      <span class="tag tag-category">${category}</span>
-      ${providerTags}${refTag}${scriptTag}
-    </div>
-  </div>`;
-}
+      <div class="journey-arrow">&rarr;</div>
+    </a>
 
-// ===== Detail Panel Component =====
-function renderDetailPanel({ name, source, sourceIcon, desc, version, refs, scripts, sourceType, providers, fullyInstalled }) {
-  const providerCards = providers.map(p => `
-    <div class="provider-card${p.installed ? ' installed' : ''}">
-      <div class="provider-icon ${p.icon}">${p.icon === 'claude' ? 'C' : 'X'}</div>
-      <div class="provider-info">
-        <div class="provider-name">${p.name}</div>
-        <div class="provider-path">${p.path}</div>
-      </div>
-      <span class="provider-status ${p.installed ? 'installed' : 'available'}">${p.installed ? 'Installed' : 'Available'}</span>
-    </div>`).join('');
+    <div class="journey-connector"></div>
 
-  const installBtn = fullyInstalled
-    ? `<button class="btn btn-primary" disabled>${Icons.check} Fully Installed</button>`
-    : `<button class="btn btn-primary">${Icons.download} Install</button>`;
+    <a class="journey-card" href="pages/05-uninstall.html">
+      <div class="journey-num red">5</div>
+      <div class="journey-info">
+        <div class="journey-title">Uninstall Skill</div>
+        <div class="journey-desc">Select installed skill. Choose provider to remove from. Confirmation dialog. Folder deleted.</div>
+      </div>
+      <div class="journey-arrow">&rarr;</div>
+    </a>
 
-  return `
-  <aside class="detail-panel">
-    <div class="detail-panel-header">
-      <div>
-        <div class="detail-name">${name}</div>
-        <div class="detail-source">${sourceIcon} ${source}</div>
-      </div>
-      <button class="detail-close">${Icons.close}</button>
-    </div>
-    <div class="detail-body">
-      <div class="detail-section">
-        <div class="detail-section-title">Description</div>
-        <div class="detail-desc">${desc}</div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">Metadata</div>
-        <div class="detail-meta-grid">
-          <div class="detail-meta-item"><div class="detail-meta-label">Version</div><div class="detail-meta-value">${version}</div></div>
-          <div class="detail-meta-item"><div class="detail-meta-label">References</div><div class="detail-meta-value">${refs}</div></div>
-          <div class="detail-meta-item"><div class="detail-meta-label">Scripts</div><div class="detail-meta-value">${scripts}</div></div>
-          <div class="detail-meta-item"><div class="detail-meta-label">Source</div><div class="detail-meta-value" style="font-size:11px;">${sourceType}</div></div>
-        </div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">Installation</div>
-        <div class="provider-cards">${providerCards}</div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">Content Preview</div>
-        <div class="detail-content-preview">
-          <h3>When to Use</h3>
-          <p>Trigger when developers mention <code>async/await</code>, <code>actors</code>, <code>@MainActor</code>, or <code>Sendable</code>.</p>
-          <h3>Key Patterns</h3>
-          <p>Structured concurrency with <code>TaskGroup</code>, actor isolation for shared state, <code>AsyncSequence</code> for streaming data.</p>
-          <h3>Migration Guide</h3>
-          <p>Step-by-step Swift 6 migration: enable strict checking, fix <code>Sendable</code> conformance, refactor completion handlers.</p>
-        </div>
-      </div>
-    </div>
-    <div class="detail-footer">
-      <button class="btn btn-danger">${Icons.trash} Uninstall</button>
-      <button class="btn btn-secondary">${Icons.folder} Finder</button>
-      ${installBtn}
-    </div>
-  </aside>`;
-}
+    <div class="journey-connector"></div>
 
-// Boot
-renderBrowsePage();
-</script>
+    <a class="journey-card" href="pages/06-edit-skill.html">
+      <div class="journey-num cyan">6</div>
+      <div class="journey-info">
+        <div class="journey-title">Edit Local Skill</div>
+        <div class="journey-desc">Edit SKILL.md with split-pane editor + live preview. Tags shown in frontmatter and preview.</div>
+      </div>
+      <div class="journey-arrow">&rarr;</div>
+    </a>
+  </div>
+
+  <div class="design-note">
+    <strong>Design Decision: Tags replace hardcoded categories.</strong><br>
+    The current SKILL.md frontmatter only has <code>name</code>, <code>description</code>, <code>version</code>.
+    This prototype proposes adding a <code>tags</code> field (e.g., <code>tags: development, swift, tdd</code>).
+    Category tabs are then auto-generated from all unique tags across skills in the current catalog.
+    No manual category management needed.
+  </div>
+</div>
+
 </body>
 </html>

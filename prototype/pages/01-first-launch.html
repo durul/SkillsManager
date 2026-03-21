@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — 1. First Launch</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../components/tokens.css">
+<link rel="stylesheet" href="../components/layout.css">
+<link rel="stylesheet" href="../components/buttons.css">
+<link rel="stylesheet" href="../components/sidebar.css">
+<link rel="stylesheet" href="../components/modal.css">
+<style>
+.empty-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+}
+.empty-icon {
+  width: 80px; height: 80px;
+  border-radius: 20px;
+  background: var(--accent-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.empty-icon svg { width: 40px; height: 40px; color: var(--accent); }
+.empty-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 400px;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+.empty-actions {
+  display: flex;
+  gap: 12px;
+}
+.empty-actions .btn { flex: none; padding: 10px 20px; font-size: 14px; }
+
+/* Getting started cards */
+.getting-started {
+  display: flex;
+  gap: 16px;
+  margin-top: 40px;
+  max-width: 600px;
+}
+.gs-card {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+}
+.gs-card:hover {
+  border-color: var(--border-light);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.gs-card-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.gs-card-icon svg { width: 20px; height: 20px; }
+.gs-card-icon.purple { background: var(--purple-subtle); color: var(--purple); }
+.gs-card-icon.orange { background: var(--orange-subtle); color: var(--orange); }
+.gs-card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.gs-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+/* Step indicator */
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app-root"></div>
+
+<script src="../components/icons.js"></script>
+<script src="../components/app-shell.js"></script>
+<script>
+// ===== JOURNEY 1: First Launch - Empty State =====
+// User opens app for the first time. No catalogs, no skills installed.
+
+function renderPage() {
+  // Empty sidebar - no catalogs yet
+  const sidebar = `
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>${Icons.book} Skills Manager</h1>
+    </div>
+    <div class="search-box">
+      ${Icons.search}
+      <input type="text" placeholder="Search skills..." disabled />
+    </div>
+    <div class="source-sections">
+      <div class="source-section">
+        <div class="source-header"><span>Installed</span><span class="count">0</span></div>
+        <div class="nav-item active">
+          ${Icons.folder} All Installed <span class="badge installed">0</span>
+        </div>
+      </div>
+      <div class="source-section">
+        <div class="source-header"><span>Catalogs</span><span class="count">0</span></div>
+        <div style="padding:12px 24px;font-size:12px;color:var(--text-muted);line-height:1.5;">
+          No catalogs added yet.<br>Add one to get started.
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-add-catalog" onclick="showModal('modal-add-catalog')">
+        ${Icons.plus} Add Catalog
+      </button>
+    </div>
+  </aside>`;
+
+  const main = `
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">Welcome to Skills Manager</div>
+          <div class="topbar-subtitle">Get started by adding your first skill catalog</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div class="empty-hero">
+        <div class="step-badge">Step 1 of 2</div>
+        <div class="empty-icon">${Icons.book}</div>
+        <div class="empty-title">No Skills Yet</div>
+        <div class="empty-desc">
+          Skills extend your AI coding assistants with specialized knowledge.
+          Add a skill catalog to browse and install skills for Claude Code or Codex.
+        </div>
+        <div class="empty-actions">
+          <button class="btn btn-primary" style="flex:none;" onclick="showModal('modal-add-catalog')">
+            ${Icons.plus} Add Your First Catalog
+          </button>
+        </div>
+
+        <div class="getting-started">
+          <div class="gs-card" onclick="showModal('modal-add-catalog')">
+            <div class="gs-card-icon purple">${Icons.github}</div>
+            <div class="gs-card-title">From GitHub</div>
+            <div class="gs-card-desc">Clone a repository of skills. Great for team-shared or community catalogs.</div>
+          </div>
+          <div class="gs-card" onclick="showModal('modal-add-catalog')">
+            <div class="gs-card-icon orange">${Icons.folder}</div>
+            <div class="gs-card-title">From Local Folder</div>
+            <div class="gs-card-desc">Point to a local directory. Perfect for skills you're developing or private collections.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>`;
+
+  document.getElementById('app-root').innerHTML = sidebar + main;
+  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
+  document.body.insertAdjacentHTML('beforeend', renderPageNav('01-first-launch'));
+}
+
+renderPage();
+</script>
+</body>
+</html>

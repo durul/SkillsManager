@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — 6. Edit Skill</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../components/tokens.css">
+<link rel="stylesheet" href="../components/layout.css">
+<link rel="stylesheet" href="../components/buttons.css">
+<link rel="stylesheet" href="../components/sidebar.css">
+<link rel="stylesheet" href="../components/editor.css">
+<link rel="stylesheet" href="../components/modal.css">
+</head>
+<body>
+
+<div class="app" id="app-root"></div>
+
+<script src="../components/icons.js"></script>
+<script src="../components/app-shell.js"></script>
+<script>
+// ===== JOURNEY 6: Edit a Local Skill =====
+// User selects local skill → clicks Edit → split editor with live preview → Save
+
+function renderPage() {
+  const sidebar = renderSidebar({ activeNav: 'all-installed' });
+
+  const main = `
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">Edit: implement-feature</div>
+          <div class="topbar-subtitle">Local skill &mdash; ~/.claude/skills/implement-feature/</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-secondary" onclick="location.href='03-browse.html'">Cancel</button>
+        <button class="btn btn-primary" style="flex:none;">${Icons.check} Save</button>
+      </div>
+    </div>
+
+    <div class="content-area" style="padding:0;">
+      <div class="editor-container" style="height:calc(100vh - 52px);">
+        <div class="editor-pane">
+          <div class="editor-pane-header">
+            <span>SKILL.md</span>
+            <span class="modified">Modified</span>
+          </div>
+          <textarea class="editor-textarea">---
+name: implement-feature
+description: |
+  Guide for implementing features following architecture-first
+  design, TDD, rich domain models, and Swift 6.2 patterns.
+version: 1.0.0
+tags: development, tdd, architecture
+---
+
+# Implement Feature
+
+Implement features using architecture-first design, TDD,
+rich domain models, and Swift 6.2 patterns.
+
+## Workflow Overview
+
+\`\`\`
+1. ARCHITECTURE DESIGN (User Approval)
+2. TDD IMPLEMENTATION
+   - Domain model tests → Domain models
+   - Infrastructure tests → Implementations
+   - Integration and views
+\`\`\`
+
+## Core Principles
+
+### Rich Domain Models
+Domain models encapsulate behavior, not just data:
+
+\`\`\`swift
+public struct Order: Sendable, Equatable {
+    public let items: [OrderItem]
+    public var totalAmount: Decimal {
+        items.reduce(0) { $0 + $1.subtotal }
+    }
+    public var canBeCancelled: Bool {
+        [.pending, .processing].contains(status)
+    }
+}
+\`\`\`
+
+### No ViewModel Layer
+Views consume domain models directly:
+
+\`\`\`swift
+struct OrderRow: View {
+    let order: Order
+    var body: some View {
+        HStack {
+            Text(order.status.displayName)
+            Spacer()
+            Text(order.totalAmount, format: .currency(code: "USD"))
+        }
+    }
+}
+\`\`\`</textarea>
+        </div>
+        <div class="editor-pane">
+          <div class="editor-pane-header"><span>Preview</span></div>
+          <div class="preview-area">
+            <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+              <span class="tag tag-version" style="font-size:11px;">v1.0.0</span>
+              <span class="tag tag-category" style="font-size:11px;">development</span>
+              <span class="tag tag-category" style="font-size:11px;">tdd</span>
+              <span class="tag tag-category" style="font-size:11px;">architecture</span>
+            </div>
+            <h1>Implement Feature</h1>
+            <p>Implement features using architecture-first design, TDD, rich domain models, and Swift 6.2 patterns.</p>
+            <h2>Workflow Overview</h2>
+            <pre><code>1. ARCHITECTURE DESIGN (User Approval)
+2. TDD IMPLEMENTATION
+   - Domain model tests → Domain models
+   - Infrastructure tests → Implementations
+   - Integration and views</code></pre>
+            <h2>Core Principles</h2>
+            <h2 style="font-size:14px;">Rich Domain Models</h2>
+            <p>Domain models encapsulate behavior, not just data:</p>
+            <pre><code>public struct Order: Sendable, Equatable {
+    public let items: [OrderItem]
+    public var totalAmount: Decimal {
+        items.reduce(0) { $0 + $1.subtotal }
+    }
+    public var canBeCancelled: Bool {
+        [.pending, .processing].contains(status)
+    }
+}</code></pre>
+            <h2 style="font-size:14px;">No ViewModel Layer</h2>
+            <p>Views consume domain models directly:</p>
+            <pre><code>struct OrderRow: View {
+    let order: Order
+    var body: some View {
+        HStack {
+            Text(order.status.displayName)
+            Spacer()
+            Text(order.totalAmount, format: .currency(code: "USD"))
+        }
+    }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>`;
+
+  document.getElementById('app-root').innerHTML = sidebar + main;
+  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
+  document.body.insertAdjacentHTML('beforeend', renderPageNav('06-edit-skill'));
+}
+
+renderPage();
+</script>
+</body>
+</html>

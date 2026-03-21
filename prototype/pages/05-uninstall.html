@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — 5. Uninstall Skill</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../components/tokens.css">
+<link rel="stylesheet" href="../components/layout.css">
+<link rel="stylesheet" href="../components/buttons.css">
+<link rel="stylesheet" href="../components/sidebar.css">
+<link rel="stylesheet" href="../components/skill-card.css">
+<link rel="stylesheet" href="../components/detail-panel.css">
+<link rel="stylesheet" href="../components/modal.css">
+<style>
+.confirm-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--red-subtle);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.confirm-icon svg { width: 24px; height: 24px; color: var(--red); }
+.confirm-title { font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+.confirm-desc { font-size: 13px; color: var(--text-secondary); text-align: center; line-height: 1.6; margin-bottom: 16px; }
+.confirm-path {
+  font-size: 12px; font-family: var(--font-mono);
+  background: var(--bg-input); padding: 8px 12px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  color: var(--text-muted); text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div class="app detail-open" id="app-root"></div>
+
+<script src="../components/icons.js"></script>
+<script src="../components/app-shell.js"></script>
+<script>
+// ===== JOURNEY 5: Uninstall a Skill =====
+// User selects installed skill → clicks Uninstall → picks provider → confirmation → removed
+
+function renderPage() {
+  const sidebar = renderSidebar({ activeNav: 'all-installed' });
+
+  const main = `
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">All Installed Skills</div>
+          <div class="topbar-subtitle">12 skills across 2 providers</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="view-toggle">
+          <button class="active">${Icons.gridView}</button>
+          <button>${Icons.listView}</button>
+        </div>
+        <button class="btn-icon" title="Refresh">${Icons.refresh}</button>
+      </div>
+    </div>
+
+    <div class="category-tabs">
+      <div class="category-tab active" onclick="selectTab(this)">All</div>
+      <div class="category-tab" onclick="selectTab(this)">development</div>
+      <div class="category-tab" onclick="selectTab(this)">design</div>
+      <div class="category-tab" onclick="selectTab(this)">testing</div>
+    </div>
+
+    <div class="content-area">
+      <div class="skills-grid">
+        ${card('Swift Concurrency', 'Expert guidance on async/await, actors, Sendable.', '2.1.0', ['development'], ['claude','codex'])}
+        ${card('UI/UX Pro Max', '50+ design styles, 97 color palettes, and UX guidelines.', '1.5.0', ['design'], ['claude'], true)}
+        ${card('TDD Chicago School', 'State-based TDD with emergent design.', '1.0.0', ['testing'], ['claude'])}
+        ${card('Feature Development', 'Guided feature dev with code review.', '3.0.0', ['development'], ['claude','codex'])}
+      </div>
+    </div>
+  </main>`;
+
+  const detail = `
+  <aside class="detail-panel">
+    <div class="detail-panel-header">
+      <div>
+        <div class="detail-name">UI/UX Pro Max</div>
+        <div class="detail-source">${Icons.github} Anthropic Skills</div>
+      </div>
+      <button class="detail-close">${Icons.close}</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-section">
+        <div class="detail-section-title">Description</div>
+        <div class="detail-desc">50+ design styles, 97 color palettes, and UX guidelines for building professional interfaces.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Tags</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="tag tag-category">design</span>
+          <span class="tag tag-category">ui</span>
+          <span class="tag tag-category">ux</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Installation</div>
+        <div class="provider-cards">
+          <div class="provider-card installed">
+            <div class="provider-icon claude">C</div>
+            <div class="provider-info"><div class="provider-name">Claude Code</div><div class="provider-path">~/.claude/skills/</div></div>
+            <span class="provider-status installed">Installed</span>
+          </div>
+          <div class="provider-card">
+            <div class="provider-icon codex">X</div>
+            <div class="provider-info"><div class="provider-name">Codex</div><div class="provider-path">~/.codex/skills/</div></div>
+            <span class="provider-status available">Not installed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-footer">
+      <button class="btn btn-danger" onclick="showUninstallModal()">${Icons.trash} Uninstall</button>
+      <button class="btn btn-secondary">${Icons.folder} Finder</button>
+      <button class="btn btn-primary">${Icons.download} Install to Codex</button>
+    </div>
+  </aside>`;
+
+  document.getElementById('app-root').innerHTML = sidebar + main + detail;
+  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
+  document.body.insertAdjacentHTML('beforeend', renderUninstallModal());
+  document.body.insertAdjacentHTML('beforeend', renderPageNav('05-uninstall'));
+}
+
+function card(name, desc, version, tags, providers, selected=false) {
+  const dot = '<span class="dot"></span>';
+  const tagHtml = tags.map(t => `<span class="tag tag-category">${t}</span>`).join('');
+  const provHtml = providers.map(p => `<span class="tag tag-${p}">${p==='claude'?'Claude Code':'Codex'}</span>`).join('');
+  return `
+  <div class="skill-card${selected?' selected':''}" onclick="selectCard(this)">
+    <div class="skill-card-header">
+      <div class="skill-card-name">${dot}${name}</div>
+    </div>
+    <div class="skill-card-desc">${desc}</div>
+    <div class="skill-card-meta"><span class="tag tag-version">v${version}</span>${tagHtml}${provHtml}</div>
+  </div>`;
+}
+
+function renderUninstallModal() {
+  return `
+  <div class="modal-overlay hidden" id="modal-uninstall" onclick="if(event.target===this)hideModal('modal-uninstall')">
+    <div class="modal" style="width:380px;">
+      <div class="modal-body" style="padding:28px 24px;" id="uninstall-body">
+        <div class="confirm-icon">${Icons.trash}</div>
+        <div class="confirm-title">Uninstall from Claude Code?</div>
+        <div class="confirm-desc">
+          This will remove <strong>UI/UX Pro Max</strong> from Claude Code.
+          The skill folder and all its contents will be deleted.
+        </div>
+        <div class="confirm-path">~/.claude/skills/ui-ux-pro-max/</div>
+      </div>
+      <div class="modal-footer" id="uninstall-footer">
+        <button class="btn btn-secondary" onclick="hideModal('modal-uninstall')">Cancel</button>
+        <button class="btn btn-danger" style="border:none;background:var(--red);color:white;" onclick="simulateUninstall()">${Icons.trash} Uninstall</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showUninstallModal() { showModal('modal-uninstall'); }
+
+function simulateUninstall() {
+  document.getElementById('uninstall-body').innerHTML = `
+    <div style="text-align:center;padding:8px 0;">
+      <div style="width:48px;height:48px;border-radius:50%;background:var(--green-subtle);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">${Icons.check}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Uninstalled</div>
+      <div style="font-size:12px;color:var(--text-muted);">UI/UX Pro Max removed from Claude Code</div>
+    </div>`;
+  document.getElementById('uninstall-footer').innerHTML = `
+    <button class="btn btn-primary" style="flex:none;" onclick="hideModal('modal-uninstall')">Done</button>`;
+}
+
+renderPage();
+</script>
+</body>
+</html>
