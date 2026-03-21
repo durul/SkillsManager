@@ -64,14 +64,23 @@ public final class SkillTags {
         globalTags.subtracting(customTags(for: skillId))
     }
 
-    /// Tag counts for a set of skills (file tags + custom tags)
+    /// Tag counts: file tags from current skills + ALL global custom tags
+    /// Global custom tags always appear (count may be 0 in current view)
     public func tagCounts(for skills: [Skill]) -> [String: Int] {
         var counts: [String: Int] = [:]
+
+        // Start with all global custom tags (so they always appear)
+        for tag in globalTags {
+            counts[tag] = 0
+        }
+
+        // Count tags from the current skills
         for skill in skills {
             for tag in allTags(for: skill) {
                 counts[tag, default: 0] += 1
             }
         }
+
         return counts
     }
 

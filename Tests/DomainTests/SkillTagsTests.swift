@@ -129,8 +129,8 @@ struct SkillTagsTests {
 
         let counts = tags.tagCounts(for: skills)
 
-        // favorites exists globally but no skill in this view has it
-        #expect(counts["favorites"] == nil || counts["favorites"] == 0)
+        // favorites exists globally — shows with count 0
+        #expect(counts["favorites"] == 0)
     }
 
     // MARK: - All Tags For Skill
