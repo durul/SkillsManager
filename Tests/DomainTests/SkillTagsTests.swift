@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import Mockable
 @testable import Domain
 
 @Suite
@@ -119,8 +120,8 @@ struct SkillTagsTests {
     // MARK: - Init with Repository
 
     @Test func `init loads custom tags from repository`() {
-        let repo = MockUserTagRepo()
-        repo.store["my-skill"] = ["favorites", "my-team"]
+        let repo = MockUserTagRepository()
+        given(repo).tags(for: .value("my-skill")).willReturn(["favorites", "my-team"])
 
         let tags = SkillTags(skillId: "my-skill", fileTags: ["dev"], repository: repo)
 
@@ -129,33 +130,24 @@ struct SkillTagsTests {
     }
 
     @Test func `addCustomTag persists to repository`() {
-        let repo = MockUserTagRepo()
+        let repo = MockUserTagRepository()
+        given(repo).tags(for: .any).willReturn([])
+        given(repo).addTag(.any, to: .any).willReturn(())
 
         let tags = SkillTags(skillId: "my-skill", fileTags: [], repository: repo)
         tags.addCustomTag("favorites")
 
-        #expect(repo.store["my-skill"]?.contains("favorites") == true)
+        #expect(tags.customTags.contains("favorites"))
     }
 
     @Test func `removeCustomTag persists to repository`() {
-        let repo = MockUserTagRepo()
-        repo.store["my-skill"] = ["favorites"]
+        let repo = MockUserTagRepository()
+        given(repo).tags(for: .any).willReturn(["favorites"])
+        given(repo).removeTag(.any, from: .any).willReturn(())
 
         let tags = SkillTags(skillId: "my-skill", fileTags: [], repository: repo)
         tags.removeCustomTag("favorites")
 
-        #expect(repo.store["my-skill"]?.contains("favorites") != true)
+        #expect(!tags.customTags.contains("favorites"))
     }
-}
-
-// MARK: - Simple mock for tests
-
-@MainActor
-private final class MockUserTagRepo: UserTagRepository, @unchecked Sendable {
-    var store: [String: Set<String>] = [:]
-
-    func tags(for skillKey: String) -> Set<String> { store[skillKey] ?? [] }
-    func addTag(_ tag: String, to skillKey: String) { store[skillKey, default: []].insert(tag) }
-    func removeTag(_ tag: String, from skillKey: String) { store[skillKey]?.remove(tag) }
-    func allTagCounts() -> [String: Int] { [:] }
 }
