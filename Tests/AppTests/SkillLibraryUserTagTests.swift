@@ -10,19 +10,16 @@ struct SkillLibraryUserTagTests {
 
     // MARK: - Tag Counts Include User Tags
 
-    @Test func `tagCounts includes user tags for skills in current catalog`() {
+    @Test func `tagCounts includes user tags from userTagsMap`() {
         let skill = makeSkill(id: "swift-concurrency", tags: ["development", "swift"])
         let localCatalog = makeLocalCatalog(skills: [skill])
         let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("swift-concurrency")).willReturn(["favorites", "my-team"])
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
-            installer: mockInstaller,
-            userTagRepository: mockUserTags
+            installer: mockInstaller
         )
+        library.userTagsMap["swift-concurrency"] = ["favorites", "my-team"]
 
         let counts = library.tagCounts
 
@@ -39,16 +36,12 @@ struct SkillLibraryUserTagTests {
         let skill2 = makeSkill(id: "skill-b", tags: ["testing"])
         let localCatalog = makeLocalCatalog(skills: [skill1, skill2])
         let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("skill-a")).willReturn(["favorites"])
-        given(mockUserTags).tags(for: .value("skill-b")).willReturn([])
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
-            installer: mockInstaller,
-            userTagRepository: mockUserTags
+            installer: mockInstaller
         )
+        library.userTagsMap["skill-a"] = ["favorites"]
         library.selectedTag = "favorites"
 
         let filtered = library.filteredSkills
@@ -61,14 +54,10 @@ struct SkillLibraryUserTagTests {
         let skill = makeSkill(id: "skill-a", tags: ["development"])
         let localCatalog = makeLocalCatalog(skills: [skill])
         let mockInstaller = MockSkillInstaller()
-        let mockUserTags = MockUserTagRepository()
-
-        given(mockUserTags).tags(for: .value("skill-a")).willReturn([])
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
-            installer: mockInstaller,
-            userTagRepository: mockUserTags
+            installer: mockInstaller
         )
         library.selectedTag = "development"
 
@@ -80,7 +69,7 @@ struct SkillLibraryUserTagTests {
 
     // MARK: - Add / Remove User Tags
 
-    @Test func `addUserTag delegates to repository`() {
+    @Test func `addUserTag updates userTagsMap and persists`() {
         let localCatalog = makeLocalCatalog()
         let mockInstaller = MockSkillInstaller()
         let mockUserTags = MockUserTagRepository()
@@ -94,9 +83,11 @@ struct SkillLibraryUserTagTests {
         )
 
         library.addUserTag("favorites", to: "skill-a")
+
+        #expect(library.userTagsMap["skill-a"]?.contains("favorites") == true)
     }
 
-    @Test func `removeUserTag delegates to repository`() {
+    @Test func `removeUserTag updates userTagsMap and persists`() {
         let localCatalog = makeLocalCatalog()
         let mockInstaller = MockSkillInstaller()
         let mockUserTags = MockUserTagRepository()
@@ -108,8 +99,29 @@ struct SkillLibraryUserTagTests {
             installer: mockInstaller,
             userTagRepository: mockUserTags
         )
+        library.userTagsMap["skill-a"] = ["favorites"]
 
         library.removeUserTag("favorites", from: "skill-a")
+
+        #expect(library.userTagsMap["skill-a"] == nil)
+    }
+
+    @Test func `addUserTag normalizes to lowercase`() {
+        let localCatalog = makeLocalCatalog()
+        let mockInstaller = MockSkillInstaller()
+        let mockUserTags = MockUserTagRepository()
+
+        given(mockUserTags).addTag(.any, to: .any).willReturn(())
+
+        let library = SkillLibrary(
+            localCatalog: localCatalog,
+            installer: mockInstaller,
+            userTagRepository: mockUserTags
+        )
+
+        library.addUserTag("  MyTag  ", to: "skill-a")
+
+        #expect(library.userTagsMap["skill-a"]?.contains("mytag") == true)
     }
 
     // MARK: - Helpers

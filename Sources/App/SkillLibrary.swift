@@ -37,6 +37,9 @@ public final class SkillLibrary {
     /// Selected tag filter (nil = show all)
     public var selectedTag: String?
 
+    /// User-added tags per skill key (observable, persisted via repository)
+    public var userTagsMap: [String: Set<String>] = [:]
+
     // MARK: - Loading State
 
     /// Loading state - computed from selected catalog
@@ -81,7 +84,7 @@ public final class SkillLibrary {
         // Filter by tag (SKILL.md tags + user tags)
         if let tag = selectedTag {
             skills = skills.filter {
-                $0.tags.contains(tag) || userTagRepository?.tags(for: $0.uniqueKey).contains(tag) == true
+                $0.tags.contains(tag) || (userTagsMap[$0.uniqueKey]?.contains(tag) == true)
             }
         }
 
@@ -101,7 +104,7 @@ public final class SkillLibrary {
                 counts[tag, default: 0] += 1
             }
             // Include user tags
-            if let userTags = userTagRepository?.tags(for: skill.uniqueKey), !userTags.isEmpty {
+            if let userTags = userTagsMap[skill.uniqueKey], !userTags.isEmpty {
                 for tag in userTags {
                     counts[tag, default: 0] += 1
                 }
@@ -277,6 +280,9 @@ public final class SkillLibrary {
 
         // Sync installation status on remote catalog skills
         syncInstallationStatus()
+
+        // Load persisted user tags into observable state
+        loadUserTags()
     }
 
     /// Refresh skills
@@ -401,17 +407,36 @@ public final class SkillLibrary {
 
     /// Get user tags for a specific skill
     public func userTags(for skillKey: String) -> Set<String> {
-        userTagRepository?.tags(for: skillKey) ?? []
+        userTagsMap[skillKey] ?? []
     }
 
     /// Add a user tag to a skill
     public func addUserTag(_ tag: String, to skillKey: String) {
-        userTagRepository?.addTag(tag, to: skillKey)
+        let normalized = tag.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !normalized.isEmpty else { return }
+        userTagsMap[skillKey, default: []].insert(normalized)
+        userTagRepository?.addTag(normalized, to: skillKey)
     }
 
     /// Remove a user tag from a skill
     public func removeUserTag(_ tag: String, from skillKey: String) {
+        userTagsMap[skillKey]?.remove(tag)
+        if userTagsMap[skillKey]?.isEmpty == true {
+            userTagsMap.removeValue(forKey: skillKey)
+        }
         userTagRepository?.removeTag(tag, from: skillKey)
+    }
+
+    /// Load user tags from repository into observable state
+    private func loadUserTags() {
+        guard let repo = userTagRepository else { return }
+        // Load all persisted user tags
+        for skill in catalogs.flatMap(\.skills) {
+            let tags = repo.tags(for: skill.uniqueKey)
+            if !tags.isEmpty {
+                userTagsMap[skill.uniqueKey] = tags
+            }
+        }
     }
 
 }
