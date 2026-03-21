@@ -43,6 +43,7 @@
 }
 .step-dot {
   width: 24px; height: 24px;
+  min-width: 24px; min-height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -52,6 +53,7 @@
   border: 2px solid var(--border);
   color: var(--text-muted);
 }
+.step-dot svg { width: 12px; height: 12px; }
 .step-dot.done { background: var(--green); border-color: var(--green); color: white; }
 .step-dot.active { background: var(--accent); border-color: var(--accent); color: white; }
 .step-line { flex: 1; height: 2px; background: var(--border); max-width: 40px; }
