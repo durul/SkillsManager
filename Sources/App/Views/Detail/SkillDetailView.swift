@@ -90,7 +90,7 @@ struct SkillDetailView: View {
 
     private var tagsSection: some View {
         detailSection("Tags") {
-            EditableTagsView(skill: skill, library: library)
+            EditableTagsView(tags: library.skillTags(for: skill))
         }
     }
 

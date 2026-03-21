@@ -4,26 +4,21 @@ import Domain
 /// Editable tags view showing SKILL.md tags (purple) + user tags (cyan)
 /// Matches prototype page 07-manage-tags.html
 struct EditableTagsView: View {
-    let skill: Skill
-    @Bindable var library: SkillLibrary
+    @Bindable var tags: SkillTags
 
     @State private var isAddingTag = false
     @State private var newTagText = ""
-
-    private var userTags: Set<String> {
-        library.userTags(for: skill.uniqueKey)
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             FlowLayout(spacing: 6) {
                 // Purple: SKILL.md tags (read-only)
-                ForEach(skill.tags, id: \.self) { tag in
+                ForEach(tags.fileTags, id: \.self) { tag in
                     autoTagChip(tag)
                 }
 
                 // Cyan: user-added tags (removable)
-                ForEach(Array(userTags).sorted(), id: \.self) { tag in
+                ForEach(Array(tags.customTags).sorted(), id: \.self) { tag in
                     userTagChip(tag)
                 }
 
@@ -62,7 +57,7 @@ struct EditableTagsView: View {
                 .fontWeight(.medium)
 
             Button {
-                library.removeUserTag(tag, from: skill.uniqueKey)
+                tags.removeCustomTag(tag)
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 7, weight: .bold))
@@ -190,8 +185,8 @@ struct EditableTagsView: View {
 
     private func commitTag() {
         let tag = newTagText.trimmingCharacters(in: .whitespaces).lowercased()
-        if !tag.isEmpty && !skill.tags.contains(tag) {
-            library.addUserTag(tag, to: skill.uniqueKey)
+        if !tag.isEmpty && !tags.fileTags.contains(tag) {
+            tags.addCustomTag(tag)
         }
         newTagText = ""
         isAddingTag = false
