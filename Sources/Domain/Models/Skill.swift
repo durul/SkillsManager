@@ -36,6 +36,9 @@ public struct Skill: Sendable, Equatable, Identifiable, Hashable {
 
     // MARK: - Metadata
 
+    /// Tags from SKILL.md frontmatter for categorization
+    public let tags: [String]
+
     public var referenceCount: Int
     public var scriptCount: Int
 
@@ -50,6 +53,7 @@ public struct Skill: Sendable, Equatable, Identifiable, Hashable {
         source: SkillSource,
         repoPath: String? = nil,
         installedProviders: Set<Provider> = [],
+        tags: [String] = [],
         referenceCount: Int = 0,
         scriptCount: Int = 0
     ) {
@@ -61,6 +65,7 @@ public struct Skill: Sendable, Equatable, Identifiable, Hashable {
         self.source = source
         self.repoPath = repoPath
         self.installedProviders = installedProviders
+        self.tags = tags
         self.referenceCount = referenceCount
         self.scriptCount = scriptCount
     }
@@ -157,7 +162,8 @@ public struct Skill: Sendable, Equatable, Identifiable, Hashable {
     public func matches(query: String) -> Bool {
         guard !query.isEmpty else { return true }
         return name.localizedCaseInsensitiveContains(query) ||
-               description.localizedCaseInsensitiveContains(query)
+               description.localizedCaseInsensitiveContains(query) ||
+               tags.contains { $0.localizedCaseInsensitiveContains(query) }
     }
 
     // MARK: - Mutation Methods
@@ -187,6 +193,7 @@ public struct Skill: Sendable, Equatable, Identifiable, Hashable {
             source: source,
             repoPath: repoPath,
             installedProviders: installedProviders,
+            tags: tags,
             referenceCount: referenceCount,
             scriptCount: scriptCount
         )
@@ -204,6 +211,7 @@ public struct Skill: Sendable, Equatable, Identifiable, Hashable {
             source: source,
             repoPath: repoPath,
             installedProviders: providers,
+            tags: tags,
             referenceCount: referenceCount,
             scriptCount: scriptCount
         )

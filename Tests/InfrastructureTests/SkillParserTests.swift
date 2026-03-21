@@ -165,6 +165,52 @@ struct SkillParserTests {
         }
     }
 
+    // MARK: - Tags Parsing
+
+    @Test func `parses comma-separated tags from frontmatter`() throws {
+        let content = """
+        ---
+        name: swift-concurrency
+        description: Async/await guidance
+        tags: development, swift, concurrency
+        ---
+        # Content
+        """
+
+        let result = try SkillParser.parse(content: content, id: "swift-concurrency", source: .remote(repoUrl: ""))
+
+        #expect(result.tags == ["development", "swift", "concurrency"])
+    }
+
+    @Test func `parses single tag from frontmatter`() throws {
+        let content = """
+        ---
+        name: simple-skill
+        description: A simple skill
+        tags: development
+        ---
+        # Content
+        """
+
+        let result = try SkillParser.parse(content: content, id: "simple", source: .remote(repoUrl: ""))
+
+        #expect(result.tags == ["development"])
+    }
+
+    @Test func `skill without tags has empty tags`() throws {
+        let content = """
+        ---
+        name: no-tags
+        description: No tags skill
+        ---
+        # Content
+        """
+
+        let result = try SkillParser.parse(content: content, id: "no-tags", source: .remote(repoUrl: ""))
+
+        #expect(result.tags.isEmpty)
+    }
+
     @Test func `throws error for missing description in frontmatter`() {
         let content = """
         ---

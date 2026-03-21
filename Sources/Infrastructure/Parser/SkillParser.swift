@@ -39,6 +39,13 @@ public enum SkillParser {
 
         let version = metadata["version"] ?? "1.0.0"
 
+        let tags: [String]
+        if let tagsString = metadata["tags"] {
+            tags = tagsString.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        } else {
+            tags = []
+        }
+
         return Skill(
             id: id,
             name: name,
@@ -46,7 +53,8 @@ public enum SkillParser {
             version: version,
             content: content,
             source: source,
-            repoPath: repoPath
+            repoPath: repoPath,
+            tags: tags
         )
     }
 

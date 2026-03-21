@@ -152,6 +152,12 @@ public final class SkillsCatalog: Identifiable {
         skills.count
     }
 
+    /// All unique tags across all skills, sorted alphabetically
+    public var allTags: [String] {
+        let tagSets = skills.flatMap { $0.tags }
+        return Array(Set(tagSets)).sorted()
+    }
+
     // MARK: - Helpers
 
     private func formatError(_ error: Error) -> String {

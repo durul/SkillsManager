@@ -497,6 +497,84 @@ struct SkillTests {
         #expect(skill.uniqueKey == ".claude/skills/ui-ux-pro-max")
     }
 
+    // MARK: - Tags
+
+    @Test func `skill with tags exposes them`() {
+        let skill = Skill(
+            id: "swift-concurrency",
+            name: "Swift Concurrency",
+            description: "Async/await guidance",
+            version: "1.0.0",
+            content: "",
+            source: .remote(repoUrl: ""),
+            tags: ["development", "swift", "concurrency"]
+        )
+
+        #expect(skill.tags == ["development", "swift", "concurrency"])
+    }
+
+    @Test func `skill without tags defaults to empty`() {
+        let skill = Skill(
+            id: "basic",
+            name: "Basic",
+            description: "Basic skill",
+            version: "1.0.0",
+            content: "",
+            source: .remote(repoUrl: "")
+        )
+
+        #expect(skill.tags.isEmpty)
+    }
+
+    @Test func `tags are included in search matching`() {
+        let skill = Skill(
+            id: "swift-concurrency",
+            name: "Swift Concurrency",
+            description: "Async/await guidance",
+            version: "1.0.0",
+            content: "",
+            source: .remote(repoUrl: ""),
+            tags: ["development", "swift"]
+        )
+
+        #expect(skill.matches(query: "development") == true)
+        #expect(skill.matches(query: "swift") == true)
+        #expect(skill.matches(query: "design") == false)
+    }
+
+    @Test func `updating content preserves tags`() {
+        let original = Skill(
+            id: "test",
+            name: "Test",
+            description: "Test",
+            version: "1.0.0",
+            content: "# Original",
+            source: .local(provider: .claude),
+            tags: ["development", "tdd"]
+        )
+
+        let updated = original.updating(content: "# Updated")
+
+        #expect(updated.tags == ["development", "tdd"])
+        #expect(updated.content == "# Updated")
+    }
+
+    @Test func `withInstalledProviders preserves tags`() {
+        let skill = Skill(
+            id: "test",
+            name: "Test",
+            description: "Test",
+            version: "1.0.0",
+            content: "",
+            source: .remote(repoUrl: ""),
+            tags: ["ai", "api"]
+        )
+
+        let updated = skill.withInstalledProviders([.claude])
+
+        #expect(updated.tags == ["ai", "api"])
+    }
+
     // MARK: - List ID (Prevents SwiftUI Collisions)
 
     @Test func `listId for local skill includes provider`() {
@@ -704,5 +782,42 @@ struct SkillsCatalogTests {
         let catalog = SkillsCatalog(url: "https://github.com/owner/repo", loader: MockSkillRepository())
 
         #expect(catalog.isLocalDirectory == false)
+    }
+
+    // MARK: - Tags
+
+    @Test func `allTags collects unique tags from all skills`() {
+        let catalog = SkillsCatalog(name: "Local", loader: MockSkillRepository())
+        catalog.skills = [
+            Skill(id: "a", name: "A", description: "A", version: "1.0.0", content: "", source: .local(provider: .claude), tags: ["development", "swift"]),
+            Skill(id: "b", name: "B", description: "B", version: "1.0.0", content: "", source: .local(provider: .claude), tags: ["development", "tdd"]),
+            Skill(id: "c", name: "C", description: "C", version: "1.0.0", content: "", source: .local(provider: .claude), tags: ["design"]),
+        ]
+
+        let tags = catalog.allTags
+
+        #expect(tags.count == 4)
+        #expect(tags.contains("development"))
+        #expect(tags.contains("swift"))
+        #expect(tags.contains("tdd"))
+        #expect(tags.contains("design"))
+    }
+
+    @Test func `allTags is empty when no skills have tags`() {
+        let catalog = SkillsCatalog(name: "Local", loader: MockSkillRepository())
+        catalog.skills = [
+            Skill(id: "a", name: "A", description: "A", version: "1.0.0", content: "", source: .local(provider: .claude)),
+        ]
+
+        #expect(catalog.allTags.isEmpty)
+    }
+
+    @Test func `allTags is sorted alphabetically`() {
+        let catalog = SkillsCatalog(name: "Local", loader: MockSkillRepository())
+        catalog.skills = [
+            Skill(id: "a", name: "A", description: "A", version: "1.0.0", content: "", source: .local(provider: .claude), tags: ["zebra", "alpha", "mango"]),
+        ]
+
+        #expect(catalog.allTags == ["alpha", "mango", "zebra"])
     }
 }
