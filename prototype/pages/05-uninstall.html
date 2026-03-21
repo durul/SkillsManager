@@ -153,19 +153,28 @@ function card(name, desc, version, tags, providers, selected=false) {
 function renderUninstallModal() {
   return `
   <div class="modal-overlay hidden" id="modal-uninstall" onclick="if(event.target===this)hideModal('modal-uninstall')">
-    <div class="modal" style="width:380px;">
-      <div class="modal-body" style="padding:28px 24px;" id="uninstall-body">
-        <div class="confirm-icon">${Icons.trash}</div>
-        <div class="confirm-title">Uninstall from Claude Code?</div>
-        <div class="confirm-desc">
-          This will remove <strong>UI/UX Pro Max</strong> from Claude Code.
-          The skill folder and all its contents will be deleted.
+    <div class="modal" style="width:420px;">
+      <div class="modal-header">
+        <h2>Remove UI/UX Pro Max</h2>
+        <p>Choose how to remove this skill</p>
+      </div>
+      <div class="modal-body" id="uninstall-body">
+        <div class="source-option selected" onclick="selectSourceOption(this)" data-action="unlink">
+          <div class="source-option-header" style="margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:600;">Unlink from Claude Code</div>
+          </div>
+          <div class="source-option-desc">Remove the symlink from <code style="font-size:11px;">~/.claude/skills/</code>. The skill stays in central storage and can be re-linked later.</div>
         </div>
-        <div class="confirm-path">~/.claude/skills/ui-ux-pro-max/</div>
+        <div class="source-option" onclick="selectSourceOption(this)" data-action="full">
+          <div class="source-option-header" style="margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:600;color:var(--red);">Full Uninstall</div>
+          </div>
+          <div class="source-option-desc">Remove from central storage <code style="font-size:11px;">~/.agent/skills/ui-ux-pro-max/</code> and all provider links. Cannot be undone.</div>
+        </div>
       </div>
       <div class="modal-footer" id="uninstall-footer">
         <button class="btn btn-secondary" onclick="hideModal('modal-uninstall')">Cancel</button>
-        <button class="btn btn-danger" style="border:none;background:var(--red);color:white;" onclick="simulateUninstall()">${Icons.trash} Uninstall</button>
+        <button class="btn btn-danger" style="border:none;background:var(--red);color:white;" onclick="simulateUninstall()">${Icons.trash} Remove</button>
       </div>
     </div>
   </div>`;
@@ -175,10 +184,10 @@ function showUninstallModal() { showModal('modal-uninstall'); }
 
 function simulateUninstall() {
   document.getElementById('uninstall-body').innerHTML = `
-    <div style="text-align:center;padding:8px 0;">
+    <div style="text-align:center;padding:24px 0;">
       <div style="width:48px;height:48px;border-radius:50%;background:var(--green-subtle);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">${Icons.check}</div>
-      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Uninstalled</div>
-      <div style="font-size:12px;color:var(--text-muted);">UI/UX Pro Max removed from Claude Code</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Unlinked from Claude Code</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">Symlink removed. Skill still available in<br><code style="font-size:11px;background:var(--bg-input);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);">~/.agent/skills/ui-ux-pro-max/</code></div>
     </div>`;
   document.getElementById('uninstall-footer').innerHTML = `
     <button class="btn btn-primary" style="flex:none;" onclick="hideModal('modal-uninstall')">Done</button>`;
