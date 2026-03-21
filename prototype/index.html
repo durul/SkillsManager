@@ -192,11 +192,13 @@
   </div>
 
   <div class="design-note">
-    <strong>Design Decision: Two-source tag system.</strong><br>
-    The current SKILL.md frontmatter only has <code>name</code>, <code>description</code>, <code>version</code>. This prototype proposes:<br>
-    1. <strong style="color:#A855F7;">Auto tags</strong> (purple) &mdash; from a new <code>tags</code> field in SKILL.md frontmatter. Read-only for remote skills.<br>
-    2. <strong style="color:#06B6D4;">Custom tags</strong> (cyan) &mdash; user-added via the detail panel. Stored locally, won't modify the skill file.<br>
-    Both types appear as filter tabs. Users can organize any skill (even remote) into custom groups like "favorites" or "my-team".
+    <strong>Architecture: Central storage + symlinks.</strong><br>
+    Skills install to <code>~/.agent/skills/{id}/</code> (single source of truth). Providers get symlinks:<br>
+    <code>~/.claude/skills/{id}</code> &rarr; <code>~/.agent/skills/{id}</code><br>
+    <code>~/.codex/skills/{id}</code> &rarr; <code>~/.agent/skills/{id}</code><br><br>
+    <strong>Tags: Two sources.</strong><br>
+    1. <strong style="color:#A855F7;">Auto tags</strong> &mdash; from SKILL.md frontmatter (<code>tags: development, swift</code>). Read-only for remote skills.<br>
+    2. <strong style="color:#06B6D4;">Custom tags</strong> &mdash; user-added via detail panel. Stored in local metadata, never modifies the skill file.
   </div>
 </div>
 
