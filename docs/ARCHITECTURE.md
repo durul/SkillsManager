@@ -2,82 +2,129 @@
 
 ## Overview
 
-Skills Manager is a macOS app that helps users discover, browse, and install skills for AI coding assistants (Claude Code and Codex).
+Skills Manager is a macOS app that helps users discover, browse, install, and tag skills for AI coding assistants (Claude Code and Codex).
 
 ## Features
 
 - Browse skills from remote GitHub repositories (like anthropics/skills)
 - Browse skills from local directories (e.g., `~/projects/.agent/skills/`)
-- View locally installed skills
-- Toggle between Local/Remote/Local Directory sources
-- Search and filter skills
+- View locally installed skills filtered by provider
+- Search and filter skills by name, description, or tags
+- Tag skills with global custom labels (persist across catalogs)
 - View skill details with rendered markdown
-- Install skills to Codex (`~/.codex/skills/public`) and/or Claude Code (`~/.claude/skills`)
+- Edit local skill SKILL.md with split-pane editor and live preview
+- Install skills to Claude Code (`~/.claude/skills`) and/or Codex (`~/.codex/skills`)
+- Uninstall or unlink skills from providers
 - Show provider badges indicating where a skill is installed
 
 ## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        SKILLS MANAGER ARCHITECTURE                               │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                  │
-│  DOMAIN LAYER                                                                    │
-│  ┌────────────────────────────────────────────────────────────────────────────┐ │
-│  │  SkillLibrary (@Observable)                                                │ │
-│  │  ├── localCatalog: SkillsCatalog    ← Installed skills (claude + codex)   │ │
-│  │  └── remoteCatalogs: [SkillsCatalog] ← GitHub repos OR local directories  │ │
-│  │                                                                            │ │
-│  │  SkillsCatalog (@Observable class)                                         │ │
-│  │  ├── skills: [Skill]                ← Catalog OWNS its skills             │ │
-│  │  ├── loadSkills() async             ← Tell-Don't-Ask behavior             │ │
-│  │  ├── updateInstallationStatus()                                           │ │
-│  │  ├── addSkill(), removeSkill()                                            │ │
-│  │  ├── isLocalDirectory: Bool         ← true for file:// URLs              │ │
-│  │  └── syncInstallationStatus()                                             │ │
-│  │                                                                            │ │
-│  │  Skill (struct)                     ← Rich domain model with behavior     │ │
-│  │  Provider (enum)                    ← .claude, .codex                     │ │
-│  └────────────────────────────────────────────────────────────────────────────┘ │
-│                                                                                  │
-│  INFRASTRUCTURE LAYER                                                            │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │ MergedSkillRepo │  │ClonedRepoSkill  │  │ LocalDirectory  │                  │
-│  │ (claude+codex)  │  │Repository       │  │ SkillRepository │                  │
-│  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘                  │
-│           │                    │                    │                            │
-│           ▼                    ▼                    ▼                            │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │ LocalSkillRepo  │  │ GitCLIClient    │  │ FileSystem      │                  │
-│  │ (FileSystem)    │  │ (git clone/pull)│  │ (any directory) │                  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘                  │
-│                                                                                  │
-│  ┌─────────────────┐  ┌─────────────────┐                                       │
-│  │ FileSystemSkill │  │ProviderPath     │                                       │
-│  │ Installer       │  │ Resolver        │                                       │
-│  └─────────────────┘  └─────────────────┘                                       │
-│                                                                                  │
-│  APP LAYER (SwiftUI)                                                             │
-│  ┌────────────────────────────────────────────────────────────────────────────┐ │
-│  │  Views consume domain models directly (no ViewModel)                       │ │
-│  │  ┌─────────────┐  ┌────────────────────────┐  ┌─────────────────────────┐  │ │
-│  │  │ Sidebar     │  │ SkillDetailView        │  │ InstallSheet            │  │ │
-│  │  │ - Search    │  │ - Rendered Markdown    │  │ - Provider checkboxes   │  │ │
-│  │  │ - Source    │  │ - Install Button       │  │                         │  │ │
-│  │  │ - SkillList │  │                        │  │                         │  │ │
-│  │  └─────────────┘  └────────────────────────┘  └─────────────────────────┘  │ │
-│  │                                                                            │ │
-│  │  AddCatalogSheet: GitHub URL input OR local directory picker (NSOpenPanel)│ │
-│  └────────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                        SKILLS MANAGER ARCHITECTURE                          │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  DOMAIN LAYER (Sources/Domain/)                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                        │  │
+│  │  Skill (struct)                    ← Rich domain model with behavior  │  │
+│  │  ├── id, name, description, version, content, tags                    │  │
+│  │  ├── isInstalled, displayName, uniqueKey                              │  │
+│  │  ├── isInstalledFor(_:), matches(query:), canBeInstalled              │  │
+│  │  └── installing(for:), uninstalling(from:)                            │  │
+│  │                                                                        │  │
+│  │  SkillsCatalog (@Observable class) ← Owns and manages skills          │  │
+│  │  ├── skills: [Skill], isLoading, errorMessage                         │  │
+│  │  ├── loadSkills(), addSkill(), removeSkill()                          │  │
+│  │  ├── updateInstallationStatus(), syncInstallationStatus()             │  │
+│  │  └── allTags, skillCount, isLocal, isLocalDirectory                   │  │
+│  │                                                                        │  │
+│  │  SkillTags (@Observable class)     ← Global tag management aggregate  │  │
+│  │  ├── globalTags: Set<String>       ← All user-created tags            │  │
+│  │  ├── createTag(_:for:)             ← New tag + assign to skill        │  │
+│  │  ├── assignTag(_:to:)              ← Assign existing tag              │  │
+│  │  ├── removeTag(_:from:)            ← Unassign (tag stays global)      │  │
+│  │  ├── hasTag(_:skill:)              ← Checks file + custom tags        │  │
+│  │  ├── allTags(for:)                 ← Combined, sorted                 │  │
+│  │  ├── tagCounts(for:)              ← Counts for skills in view         │  │
+│  │  ├── availableTags(for:)           ← Global tags not yet on skill     │  │
+│  │  └── repository: UserTagRepository ← CRUD persistence (injected)      │  │
+│  │                                                                        │  │
+│  │  SkillEditor (@Observable class)   ← Draft editing state              │  │
+│  │  Provider (enum)                   ← .claude, .codex                  │  │
+│  │  SkillSource (enum)                ← .local, .remote, .localDirectory │  │
+│  │                                                                        │  │
+│  │  Protocols (@Mockable):                                                │  │
+│  │  ├── SkillRepository               ← fetchAll(), fetch(id:)           │  │
+│  │  ├── SkillInstaller                ← install(_:to:), uninstall(_:from:)│ │
+│  │  ├── SkillWriter                   ← save(_:)                         │  │
+│  │  ├── UserTagRepository             ← allTags(), tags(for:), addTag(), │  │
+│  │  │                                    removeTag()                      │  │
+│  │  └── GitCLIClient                  ← clone(), pull()                  │  │
+│  └────────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+│  INFRASTRUCTURE LAYER (Sources/Infrastructure/)                              │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │
+│  │ MergedSkillRepo │  │ ClonedRepoSkill │  │ LocalDirectory  │              │
+│  │ (claude+codex)  │  │ Repository      │  │ SkillRepository │              │
+│  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘              │
+│           ▼                    ▼                     ▼                       │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────────┐             │
+│  │ LocalSkillRepo  │  │ GitCLIClient    │  │ UserDefaultsUser │             │
+│  │ (FileSystem)    │  │ (git clone/pull)│  │ TagRepository    │             │
+│  └─────────────────┘  └─────────────────┘  └──────────────────┘             │
+│  ┌─────────────────┐  ┌─────────────────┐                                   │
+│  │ FileSystemSkill │  │ SkillParser     │                                   │
+│  │ Installer       │  │ (SKILL.md)      │                                   │
+│  └─────────────────┘  └─────────────────┘                                   │
+│                                                                              │
+│  APP LAYER (Sources/App/)                                                    │
+│  ┌────────────────────────────────────────────────────────────────────────┐  │
+│  │  SkillLibrary (@Observable) ← Coordinates catalogs + tags             │  │
+│  │  ├── localCatalog, remoteCatalogs                                     │  │
+│  │  ├── skillTags: SkillTags (single shared instance)                    │  │
+│  │  ├── filteredSkills, tagCounts (computed, uses SkillTags)              │  │
+│  │  └── install(), uninstall(), addCatalog(), removeCatalog()            │  │
+│  │                                                                        │  │
+│  │  Design Tokens (DS enum) ← Matches prototype tokens.css               │  │
+│  │                                                                        │  │
+│  │  Views (SwiftUI Atomic Design — no ViewModel layer):                   │  │
+│  │  ┌──────────────────────────────────────────────────────────────────┐  │  │
+│  │  │ Page: ContentView (3-column: sidebar | main | detail)           │  │  │
+│  │  │                                                                  │  │  │
+│  │  │ Organisms:                                                       │  │  │
+│  │  │ ├── SidebarView (search, installed nav, catalogs, add catalog)  │  │  │
+│  │  │ ├── SkillCardView / SkillRowView (grid/list skill display)      │  │  │
+│  │  │ ├── SkillDetailView (right panel with all skill info)           │  │  │
+│  │  │ └── SkillEditorView (split pane markdown editor + preview)      │  │  │
+│  │  │                                                                  │  │  │
+│  │  │ Molecules:                                                       │  │  │
+│  │  │ ├── CategoryTabsBar (tag filter tabs with counts)               │  │  │
+│  │  │ ├── StatsBar (total/installed/catalogs)                         │  │  │
+│  │  │ └── ProviderLinkCard (provider icon + status)                   │  │  │
+│  │  │                                                                  │  │  │
+│  │  │ Atoms:                                                           │  │  │
+│  │  │ ├── TagChip (version/category/provider/refs/scripts badges)     │  │  │
+│  │  │ ├── EditableTagsView (file tags + custom tags + add/remove)     │  │  │
+│  │  │ ├── FlowLayout (wrapping horizontal layout)                     │  │  │
+│  │  │ ├── LinkStatusBadge, StoragePath                                │  │  │
+│  │  │ └── MarkdownView (rendered markdown using swift-markdown)       │  │  │
+│  │  │                                                                  │  │  │
+│  │  │ Sheets:                                                          │  │  │
+│  │  │ ├── AddCatalogSheet (GitHub URL / local directory picker)       │  │  │
+│  │  │ ├── InstallSheet (provider checkboxes + progress + success)     │  │  │
+│  │  │ └── UninstallSheet (unlink vs full uninstall)                   │  │  │
+│  │  └──────────────────────────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Layers
 
 | Layer | Location | Purpose |
 |-------|----------|---------|
-| **Domain** | `Sources/Domain/` | Rich models, protocols, actors (single source of truth) |
-| **Infrastructure** | `Sources/Infrastructure/` | Repositories, clients, parsers |
+| **Domain** | `Sources/Domain/` | Rich models, protocols, domain aggregates |
+| **Infrastructure** | `Sources/Infrastructure/` | Repositories, clients, parsers, persistence |
 | **App** | `Sources/App/` | SwiftUI views consuming domain directly (no ViewModel) |
 
 ## Domain Models
@@ -85,10 +132,11 @@ Skills Manager is a macOS app that helps users discover, browse, and install ski
 ### Domain Model Hierarchy
 
 ```
-SkillLibrary (@Observable)
+SkillLibrary (@Observable, App layer coordinator)
 ├── localCatalog: SkillsCatalog     ← Installed skills (claude + codex)
-└── remoteCatalogs: [SkillsCatalog] ← GitHub repos OR local directories
-    └── skills: [Skill]              ← Each catalog OWNS its skills
+├── remoteCatalogs: [SkillsCatalog] ← GitHub repos OR local directories
+│   └── skills: [Skill]             ← Each catalog OWNS its skills
+└── skillTags: SkillTags            ← Single shared instance for tag management
 ```
 
 **Catalog Types:**
@@ -107,13 +155,9 @@ public final class SkillsCatalog: Identifiable {
     public let id: UUID
     public let url: String?           // nil for local catalog
     public let name: String
-    public let addedAt: Date
 
     public var skills: [Skill] = []   // Catalog OWNS its skills
     public var isLoading: Bool = false
-    public var errorMessage: String?
-
-    private let loader: SkillRepository  // Injected dependency
 
     // Tell-Don't-Ask: catalog manages its own skills
     public func loadSkills() async { ... }
@@ -121,36 +165,64 @@ public final class SkillsCatalog: Identifiable {
     public func removeSkill(uniqueKey: String) { ... }
     public func updateInstallationStatus(for uniqueKey: String, to providers: Set<Provider>) { ... }
     public func syncInstallationStatus(with installedSkills: [Skill]) { ... }
-
-    // Computed
-    public var isLocal: Bool { url == nil }
-    public var isLocalDirectory: Bool { url?.hasPrefix("file://") ?? false }
-    public var isValid: Bool { ... }  // Accepts GitHub URLs and file:// URLs
 }
 ```
 
+### SkillTags
+
+Domain aggregate for the tags feature. Single `@Observable` instance shared across the app.
+
+```swift
+@Observable
+@MainActor
+public final class SkillTags {
+    public private(set) var globalTags: Set<String>     // All user-created tags
+    private var assignments: [String: Set<String>]      // skillId -> custom tags
+
+    // Queries (user's mental model)
+    public func allTags(for skill: Skill) -> [String]   // file + custom, sorted
+    public func hasTag(_ tag: String, skill: Skill) -> Bool
+    public func tagCounts(for skills: [Skill]) -> [String: Int]  // includes global tags
+    public func availableTags(for skillId: String) -> Set<String>
+
+    // Commands
+    public func createTag(_ tag: String, for skillId: String)    // new tag + assign
+    public func assignTag(_ tag: String, to skillId: String)     // assign existing
+    public func removeTag(_ tag: String, from skillId: String)   // unassign
+
+    private let repository: UserTagRepository?  // CRUD only
+}
+```
+
+**User mental model:**
+> "I create tags to organize my skills. Once a tag exists, I can assign it to any skill.
+> Tags are global — they show in the filter bar regardless of which catalog I'm viewing."
+
 ### SkillLibrary
 
-Coordinates catalogs. Views consume this directly.
+Coordinates catalogs and tags. Views consume this directly.
 
 ```swift
 @Observable
 @MainActor
 public final class SkillLibrary {
-    public let localCatalog: SkillsCatalog      // Installed skills
-    public var remoteCatalogs: [SkillsCatalog]  // GitHub repos
+    public let localCatalog: SkillsCatalog
+    public var remoteCatalogs: [SkillsCatalog]
+    public let skillTags: SkillTags              // Single shared instance
 
-    public var catalogs: [SkillsCatalog] {
-        [localCatalog] + remoteCatalogs
+    // Computed (uses SkillTags for tag-aware filtering)
+    public var filteredSkills: [Skill] { ... }   // filters by source, provider, tag, search
+    public var tagCounts: [String: Int] {        // delegates to skillTags.tagCounts(for:)
+        skillTags.tagCounts(for: selectedCatalog.skills)
     }
 
-    public var filteredSkills: [Skill] {
-        selectedCatalog.skills.filter { $0.matches(query: searchQuery) }
-    }
-
-    // Tells catalogs what to do (Tell-Don't-Ask)
+    // Actions
     public func install(to providers: Set<Provider>) async { ... }
     public func uninstall(from provider: Provider) async { ... }
+    public func addCatalog(url: String) { ... }
+    public func removeCatalog(_ catalog: SkillsCatalog) { ... }
+    public func startEditing() { ... }
+    public func saveEditing() async { ... }
 }
 ```
 
@@ -160,20 +232,24 @@ Rich domain model representing an installable skill.
 
 ```swift
 public struct Skill: Sendable, Equatable, Identifiable {
-    public let id: String
+    public let id: String               // Folder name, shared across catalogs
     public let name: String
     public let description: String
     public let version: String
-    public let content: String          // Full SKILL.md content
+    public let content: String           // Full SKILL.md content
     public let source: SkillSource
+    public let tags: [String]            // From SKILL.md frontmatter
     public var installedProviders: Set<Provider>
 
     // Computed behavior
     public var isInstalled: Bool { !installedProviders.isEmpty }
     public var displayName: String { ... }
-    public var uniqueKey: String { ... }  // For matching across catalogs
+    public var uniqueKey: String { ... }   // repoPath/id for deduplication
     public func isInstalledFor(_ provider: Provider) -> Bool
     public func matches(query: String) -> Bool
+    public var canBeInstalled: Bool
+    public var isFullyInstalled: Bool
+    public var isEditable: Bool
 }
 ```
 
@@ -185,101 +261,122 @@ Pure value object representing installation targets.
 public enum Provider: String, CaseIterable, Sendable {
     case codex
     case claude
-
     public var displayName: String  // "Codex" or "Claude Code"
 }
 ```
 
-> **Note**: File system paths are resolved by `ProviderPathResolver` in the Infrastructure layer, not in the domain model.
-
 ### SkillSource
-
-Enum representing where a skill comes from.
 
 ```swift
 public enum SkillSource: Sendable, Equatable {
-    case local(provider: Provider)      // Installed in ~/.claude or ~/.codex
-    case remote(repoUrl: String)        // From a GitHub repository
-    case localDirectory(path: String)   // From any local directory
-
-    public var isLocal: Bool            // true for .local
-    public var isRemote: Bool           // true for .remote
-    public var isLocalDirectory: Bool   // true for .localDirectory
+    case local(provider: Provider)
+    case remote(repoUrl: String)
+    case localDirectory(path: String)
 }
 ```
 
 ## Component Interactions
 
-| Component | Purpose | Inputs | Outputs | Dependencies |
-|-----------|---------|--------|---------|--------------|
-| `Skill` | Rich domain model | name, desc, version, content | computed: isInstalled, displayName | None |
-| `Provider` | Installation target enum | - | displayName | None |
-| `SkillSource` | Local vs Remote enum | - | isLocal, isRemote | None |
-| `SkillsCatalog` | Rich domain class owning skills | url, name, loader | skills, isLoading | SkillRepository |
-| `SkillLibrary` | Coordinates catalogs | catalogs, installer | filteredSkills | SkillsCatalog, SkillInstaller |
-| `SkillRepository` | Protocol for fetching skills | - | [Skill] | None |
-| `MergedSkillRepository` | Combines multiple repos | repositories | merged [Skill] | SkillRepository[] |
-| `LocalSkillRepository` | Read local skills | provider | [Skill] | FileSystem, PathResolver |
-| `ClonedRepoSkillRepository` | Fetch from cloned GitHub repo | repo URL | [Skill] | GitCLI |
-| `LocalDirectorySkillRepository` | Read skills from any directory | file:// URL | [Skill] | FileSystem |
-| `SkillParser` | Parse SKILL.md | fileContent | Skill metadata | None |
-| `SkillInstaller` | Copy skills to provider paths | Skill, [Provider] | Skill | FileSystem, PathResolver |
+| Component | Purpose | Dependencies |
+|-----------|---------|--------------|
+| `Skill` | Rich domain model | None |
+| `SkillsCatalog` | Owns skills, Tell-Don't-Ask | SkillRepository |
+| `SkillTags` | Global tag management aggregate | UserTagRepository |
+| `SkillLibrary` | Coordinates catalogs + tags | SkillsCatalog, SkillTags, SkillInstaller |
+| `SkillEditor` | Draft editing state | SkillWriter |
+| `MergedSkillRepository` | Combines claude + codex repos | SkillRepository[] |
+| `LocalSkillRepository` | Reads local installed skills | FileSystem |
+| `ClonedRepoSkillRepository` | Fetches from cloned GitHub repo | GitCLIClient |
+| `LocalDirectorySkillRepository` | Reads from any directory | FileSystem |
+| `UserDefaultsUserTagRepository` | Persists user tags | UserDefaults |
+| `SkillParser` | Parses SKILL.md frontmatter | None |
+| `FileSystemSkillInstaller` | Copies skills to provider paths | FileSystem |
 
 ## Data Flow
 
-### Fetching Remote Skills (GitHub)
+### Browsing Skills
 
 ```
-User selects remote catalog ──▶ SkillsCatalog.loadSkills()
-                                          │
-                                          ▼
-                              ClonedRepoSkillRepository.fetchAll()
-                                          │
-                                          ▼
-                              git clone/pull repo, parse SKILL.md files
-                                          │
-                                          ▼
-                              catalog.skills = [Skill]
-                                          │
-                                          ▼
-                              SwiftUI observes change, updates sidebar
+User selects source ──▶ SkillLibrary.selectedSource changes
+                                    │
+                                    ▼
+                        selectedCatalog computed ──▶ filteredSkills recomputes
+                                    │
+                                    ▼
+                        tagCounts recomputes via skillTags.tagCounts(for:)
+                                    │
+                                    ▼
+                        SwiftUI observes @Observable changes, updates UI
 ```
 
-### Fetching Local Directory Skills
+### Tagging a Skill
 
 ```
-User browses directory ──▶ NSOpenPanel ──▶ file:// URL
-                                          │
-                                          ▼
-                              SkillLibrary.addCatalog(url: "file://...")
-                                          │
-                                          ▼
-                              LocalDirectorySkillRepository created
-                                          │
-                                          ▼
-                              Recursive SKILL.md discovery (no git)
-                                          │
-                                          ▼
-                              catalog.skills = [Skill] with .localDirectory source
+User adds tag "swift" to skill ──▶ SkillTags.createTag("swift", for: skillId)
+                                            │
+                                            ▼
+                                  globalTags.insert("swift")     ← @Observable
+                                  assignments[skillId] += "swift" ← @Observable
+                                  repository.addTag(...)          ← persists
+                                            │
+                                            ▼
+                                  tagCounts recomputes (includes global "swift")
+                                  CategoryTabsBar shows "swift" tab
+                                  EditableTagsView shows cyan chip
 ```
 
 ### Installing a Skill
 
 ```
-User clicks "Install" ──▶ InstallSheet shows ──▶ User selects providers
-                                                          │
-                                                          ▼
-                              SkillLibrary.install(to: providers)
-                                                          │
-                                                          ▼
-                              FileSystemSkillInstaller copies to paths
-                                                          │
-                                                          ▼
-                              localCatalog.addSkill(installedSkill)
-                                                          │
-                                                          ▼
-                              All catalogs update installation status
+User clicks "Install" ──▶ InstallSheet ──▶ User selects providers
+                                                    │
+                                                    ▼
+                            SkillLibrary.install(to: providers)
+                                                    │
+                                                    ▼
+                            FileSystemSkillInstaller copies to paths
+                                                    │
+                                                    ▼
+                            localCatalog.addSkill(installedSkill)
+                            All catalogs sync installation status
 ```
+
+## SwiftUI View Architecture (Atomic Design)
+
+```
+ContentView (Page)
+├── SidebarView (Organism)
+│   ├── Search TextField
+│   ├── Installed section (All / Claude Code / Codex nav items)
+│   ├── Catalogs section (remote catalogs with context menu)
+│   └── Add Catalog button
+├── Main Content
+│   ├── Topbar (title + subtitle + view toggle + refresh)
+│   ├── CategoryTabsBar (Molecule — tag filter tabs)
+│   ├── StatsBar (Molecule — total/installed/catalogs, local view only)
+│   └── Skills Grid/List
+│       ├── SkillCardView (grid mode — card with name, desc, tags, icon)
+│       └── SkillRowView (list mode — compact row)
+└── SkillDetailView (Organism, conditional right panel)
+    ├── Header (name + source + close)
+    ├── Description
+    ├── EditableTagsView (Atom — purple file tags + cyan custom tags)
+    ├── Metadata grid (version, refs, scripts, source)
+    ├── Storage path
+    ├── Provider link cards (Molecule)
+    ├── Content preview (MarkdownView)
+    └── Footer (uninstall / edit / install buttons)
+```
+
+## Design Tokens
+
+All UI styling uses `DS` enum (`Sources/App/Theme/DesignTokens.swift`) matching the HTML prototype's `tokens.css`:
+
+- **Colors**: Dark theme (`#0F172A` bg, `#F1F5F9` text, `#3B82F6` accent)
+- **Typography**: System fonts matching prototype sizes (16px titles, 13px body, 11px captions)
+- **Spacing**: 6px sm, 8px md, 12px lg, 16px xl, 24px xxxl
+- **Radius**: 6px sm, 10px md, 14px lg
+- **Layout**: 260px sidebar, 420px detail panel, 300px min card width
 
 ## Project Structure
 
@@ -288,62 +385,88 @@ SkillsManager/
 ├── Sources/
 │   ├── Domain/
 │   │   ├── Models/
-│   │   │   ├── Skill.swift              # Rich domain model
-│   │   │   ├── Provider.swift           # Value enum
-│   │   │   ├── SkillSource.swift        # Local vs Remote enum
-│   │   │   ├── SkillsCatalog.swift      # @Observable class owning skills
-│   │   │   └── SkillEditor.swift        # Edit state
+│   │   │   ├── Skill.swift
+│   │   │   ├── Provider.swift
+│   │   │   ├── SkillSource.swift
+│   │   │   ├── SkillsCatalog.swift
+│   │   │   ├── SkillTags.swift          # @Observable tag management aggregate
+│   │   │   ├── SkillEditor.swift
+│   │   │   └── SkillsRepository.swift   # Default catalog data
 │   │   └── Protocols/
-│   │       ├── SkillRepository.swift    # @Mockable protocol
-│   │       ├── SkillInstaller.swift     # @Mockable protocol
-│   │       └── GitCLIClient.swift       # @Mockable protocol
+│   │       ├── SkillRepository.swift     # @Mockable
+│   │       ├── UserTagRepository.swift   # @Mockable
+│   │       └── GitCLIClient.swift        # @Mockable
 │   ├── Infrastructure/
 │   │   ├── Repositories/
-│   │   │   ├── MergedSkillRepository.swift   # Combines claude + codex
+│   │   │   └── MergedSkillRepository.swift
 │   │   ├── Local/
 │   │   │   ├── LocalSkillRepository.swift
-│   │   │   ├── LocalDirectorySkillRepository.swift  # Any directory (file:// URL)
+│   │   │   ├── LocalDirectorySkillRepository.swift
 │   │   │   ├── LocalSkillWriter.swift
 │   │   │   └── ProviderPathResolver.swift
 │   │   ├── Git/
 │   │   │   └── ClonedRepoSkillRepository.swift
 │   │   ├── Parser/
 │   │   │   └── SkillParser.swift
-│   │   └── Installer/
-│   │       └── FileSystemSkillInstaller.swift
+│   │   ├── Installer/
+│   │   │   └── FileSystemSkillInstaller.swift
+│   │   └── UserDefaultsUserTagRepository.swift
 │   └── App/
-│       ├── SkillsManagerApp.swift       # Dependency wiring
-│       ├── SkillLibrary.swift           # @Observable coordinator
+│       ├── SkillsManagerApp.swift
+│       ├── SkillLibrary.swift            # @Observable coordinator
+│       ├── AppSettings.swift
+│       ├── Theme/
+│       │   └── DesignTokens.swift        # DS enum (colors, typography, spacing)
 │       └── Views/
-│           ├── ContentView.swift
+│           ├── ContentView.swift          # Root 3-column layout
 │           ├── Sidebar/
 │           │   ├── SidebarView.swift
-│           │   ├── SourceToggle.swift
-│           │   └── SkillRowView.swift
+│           │   └── SkillRowView.swift     # SkillCardView + SkillRowView
 │           ├── Detail/
-│           │   └── SkillDetailView.swift
-│           └── Sheets/
-│               └── InstallSheet.swift
+│           │   ├── SkillDetailView.swift
+│           │   ├── SkillEditorView.swift
+│           │   └── MarkdownView.swift
+│           ├── Atoms/
+│           │   ├── TagChip.swift
+│           │   ├── EditableTagsView.swift
+│           │   ├── FlowLayout.swift
+│           │   ├── LinkStatusBadge.swift
+│           │   └── StoragePath.swift
+│           ├── Molecules/
+│           │   ├── CategoryTabsBar.swift
+│           │   ├── StatsBar.swift
+│           │   └── ProviderLinkCard.swift
+│           ├── Sheets/
+│           │   ├── AddCatalogSheet.swift
+│           │   ├── InstallSheet.swift
+│           │   └── UninstallSheet.swift
+│           └── Settings/
+│               └── SettingsView.swift
 └── Tests/
     ├── DomainTests/
-    │   ├── SkillTests.swift              # Includes SkillSource tests
-    │   ├── SkillsCatalogTests.swift
+    │   ├── SkillTests.swift
+    │   ├── SkillTagsTests.swift          # 16 tests for tag aggregate
+    │   ├── SkillEditorTests.swift
     │   └── ProviderTests.swift
     ├── AppTests/
-    │   └── SkillLibraryTests.swift
+    │   ├── SkillLibraryTests.swift
+    │   └── SkillLibraryUserTagTests.swift # Cross-catalog tag tests
     └── InfrastructureTests/
         ├── SkillParserTests.swift
         ├── LocalSkillRepositoryTests.swift
-        ├── LocalDirectorySkillRepositoryTests.swift  # Tests for file:// catalogs
+        ├── LocalDirectorySkillRepositoryTests.swift
         ├── ClonedRepoSkillRepositoryTests.swift
         └── FileSystemSkillInstallerTests.swift
 ```
 
 ## Key Patterns
 
-- **Rich Domain Models** - Behavior encapsulated in models (not anemic data)
-- **Tell-Don't-Ask** - Objects manage their own state; callers tell objects what to do
-- **Protocol-Based DI** - `@Mockable` protocols for testability
-- **Chicago School TDD** - Test state changes, not interactions
-- **No ViewModel Layer** - Views consume domain models directly
-- **@Observable Classes** - SkillsCatalog owns skills, SkillLibrary coordinates
+- **Rich Domain Models** — Behavior encapsulated in models (Skill, SkillTags, SkillsCatalog)
+- **Tell-Don't-Ask** — Objects manage their own state; callers tell objects what to do
+- **Domain Aggregates** — SkillTags is an @Observable aggregate managing the entire tags feature
+- **Protocol-Based DI** — `@Mockable` protocols for testability (SkillRepository, UserTagRepository)
+- **Chicago School TDD** — Test state changes and return values, not interactions
+- **No ViewModel Layer** — Views consume domain models directly
+- **SwiftUI Atomic Design** — Atoms → Molecules → Organisms → Pages
+- **@Observable Classes** — SkillsCatalog, SkillTags, SkillLibrary drive SwiftUI reactivity
+- **Design Tokens** — DS enum mirrors prototype CSS variables for consistent styling
