@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — UI Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-card: #1E293B;
+  --bg-card-hover: #263549;
+  --bg-surface: #0F172A;
+  --bg-input: #0F172A;
+  --border: #334155;
+  --border-light: #475569;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --accent-subtle: rgba(59,130,246,0.12);
+  --green: #22C55E;
+  --green-subtle: rgba(34,197,94,0.12);
+  --orange: #F59E0B;
+  --orange-subtle: rgba(245,158,11,0.12);
+  --red: #EF4444;
+  --red-subtle: rgba(239,68,68,0.12);
+  --purple: #A855F7;
+  --purple-subtle: rgba(168,85,247,0.12);
+  --cyan: #06B6D4;
+  --cyan-subtle: rgba(6,182,212,0.12);
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --transition: 200ms ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== LAYOUT ===== */
+.app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-header h1 svg { width: 18px; height: 18px; color: var(--accent); }
+
+/* Search */
+.search-box {
+  margin: 12px 16px 0;
+  position: relative;
+}
+.search-box input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border var(--transition);
+}
+.search-box input:focus { border-color: var(--accent); }
+.search-box input::placeholder { color: var(--text-muted); }
+.search-box svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+/* Source sections */
+.source-sections {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.source-section { margin-bottom: 4px; }
+.source-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.source-header:hover { color: var(--text-secondary); }
+.source-header .count {
+  font-size: 10px;
+  background: var(--bg-input);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* Nav items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px 7px 24px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  border-left: 2px solid transparent;
+}
+.nav-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+.nav-item.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-item .badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.nav-item .badge.installed {
+  background: var(--green-subtle);
+  color: var(--green);
+}
+
+/* Add catalog */
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.btn-add-catalog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-add-catalog:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+.btn-add-catalog svg { width: 14px; height: 14px; }
+
+/* ===== MAIN CONTENT ===== */
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  min-height: 52px;
+}
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.topbar-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* View toggle */
+.view-toggle {
+  display: flex;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.view-toggle button {
+  padding: 5px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all var(--transition);
+}
+.view-toggle button:hover { color: var(--text-secondary); }
+.view-toggle button.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.view-toggle button svg { width: 16px; height: 16px; }
+
+/* Category tabs */
+.category-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.category-tab {
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.category-tab:hover { color: var(--text-secondary); }
+.category-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ===== GRID VIEW ===== */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* Skill Card */
+.skill-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+}
+.skill-card:hover {
+  border-color: var(--border-light);
+  background: var(--bg-card-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+.skill-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.skill-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.skill-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.skill-card-name .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+.skill-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.skill-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.tag-version {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.tag-category {
+  background: var(--purple-subtle);
+  color: var(--purple);
+}
+.tag-claude {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.tag-codex {
+  background: var(--green-subtle);
+  color: var(--green);
+}
+.tag-refs {
+  background: var(--cyan-subtle);
+  color: var(--cyan);
+}
+.tag-scripts {
+  background: var(--orange-subtle);
+  color: var(--orange);
+}
+
+/* Install button on card */
+.skill-card-actions {
+  display: flex;
+  gap: 4px;
+}
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-icon:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+.btn-icon svg { width: 14px; height: 14px; }
+
+/* ===== DETAIL PANEL (split view) ===== */
+.app.detail-open {
+  grid-template-columns: 260px 1fr 420px;
+}
+.detail-panel {
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.detail-panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.detail-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+.detail-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+.detail-close svg { width: 16px; height: 16px; }
+.detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.detail-source {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.detail-source svg { width: 12px; height: 12px; }
+
+/* Detail body */
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+.detail-section {
+  margin-bottom: 20px;
+}
+.detail-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.detail-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.detail-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.detail-meta-item {
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.detail-meta-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.detail-meta-value {
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+}
+
+/* Provider install cards */
+.provider-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.provider-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.provider-card:hover {
+  border-color: var(--border-light);
+}
+.provider-card.installed {
+  border-color: var(--green);
+  background: var(--green-subtle);
+}
+.provider-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.provider-icon.claude {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.provider-icon.codex {
+  background: var(--green-subtle);
+  color: var(--green);
+}
+.provider-info { flex: 1; }
+.provider-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.provider-path {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.provider-status {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+.provider-status.installed {
+  background: var(--green-subtle);
+  color: var(--green);
+}
+.provider-status.available {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* Detail content preview */
+.detail-content-preview {
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 16px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.detail-content-preview h3 {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 12px 0 6px;
+}
+.detail-content-preview h3:first-child { margin-top: 0; }
+.detail-content-preview code {
+  background: rgba(59,130,246,0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+/* Detail footer */
+.detail-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+}
+.btn svg { width: 14px; height: 14px; }
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  flex: 1;
+  justify-content: center;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover {
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--red);
+}
+.btn-danger:hover {
+  background: var(--red-subtle);
+  border-color: var(--red);
+}
+
+/* ===== LIST VIEW ===== */
+.skills-list { display: flex; flex-direction: column; }
+.skill-list-item {
+  display: grid;
+  grid-template-columns: 1fr 180px 120px 100px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.skill-list-item:hover { background: var(--bg-card-hover); padding: 12px; margin: 0 -12px; border-radius: var(--radius-sm); }
+.skill-list-name {
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.skill-list-name .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+.skill-list-providers {
+  display: flex;
+  gap: 4px;
+}
+.skill-list-version {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.skill-list-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+/* ===== ADD CATALOG MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 460px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.modal-header p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.modal-body { padding: 20px 24px; }
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Source option cards */
+.source-option {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.source-option:hover {
+  border-color: var(--border-light);
+  background: var(--bg-card-hover);
+}
+.source-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+.source-option-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.source-option-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.source-option-icon.github {
+  background: var(--purple-subtle);
+  color: var(--purple);
+}
+.source-option-icon.folder {
+  background: var(--orange-subtle);
+  color: var(--orange);
+}
+.source-option-icon svg { width: 20px; height: 20px; }
+.source-option-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.source-option-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.source-option-input {
+  margin-top: 12px;
+}
+.source-option-input input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  outline: none;
+}
+.source-option-input input:focus { border-color: var(--accent); }
+
+/* ===== EDITOR VIEW ===== */
+.editor-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100%;
+}
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.editor-pane + .editor-pane {
+  border-left: 1px solid var(--border);
+}
+.editor-pane-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.editor-pane-header .modified {
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--orange);
+  background: var(--orange-subtle);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.editor-textarea {
+  flex: 1;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+}
+.preview-area {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.preview-area h1 { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.preview-area h2 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 16px 0 8px; }
+.preview-area p { margin-bottom: 8px; }
+.preview-area code {
+  background: rgba(59,130,246,0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+.preview-area pre {
+  background: var(--bg-input);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  margin: 8px 0;
+  overflow-x: auto;
+}
+.preview-area pre code { background: transparent; padding: 0; }
+
+/* ===== STATS BAR ===== */
+.stats-bar {
+  display: flex;
+  gap: 24px;
+  padding: 0 24px 16px;
+}
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-icon svg { width: 16px; height: 16px; }
+.stat-icon.blue { background: var(--accent-subtle); color: var(--accent); }
+.stat-icon.green { background: var(--green-subtle); color: var(--green); }
+.stat-icon.purple { background: var(--purple-subtle); color: var(--purple); }
+.stat-icon.orange { background: var(--orange-subtle); color: var(--orange); }
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ===== QUICK ACTIONS ===== */
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 16px;
+}
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-sans);
+}
+.quick-action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+.quick-action svg { width: 14px; height: 14px; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .app { grid-template-columns: 220px 1fr; }
+  .app.detail-open { grid-template-columns: 220px 1fr 360px; }
+  .skills-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+
+/* ===== ANIMATIONS ===== */
+@media (prefers-reduced-motion: no-preference) {
+  .skill-card { transition: all var(--transition); }
+  .nav-item { transition: all var(--transition); }
+}
+
+/* Page indicators */
+.page-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  margin-bottom: 4px;
+}
+.page-indicator .label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.page-indicator .page-name {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== PAGE 1: BROWSE & DISCOVER (Grid View) ===== -->
+<div class="app detail-open" id="page-browse">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        Skills Manager
+      </h1>
+    </div>
+
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Search skills..." />
+    </div>
+
+    <div class="source-sections">
+      <!-- Installed -->
+      <div class="source-section">
+        <div class="source-header">
+          <span>Installed</span>
+          <span class="count">12</span>
+        </div>
+        <div class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-7l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/></svg>
+          All Installed
+          <span class="badge installed">12</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Claude Code
+          <span class="badge installed">10</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h.01M7 12h.01M12 7h.01"/></svg>
+          Codex
+          <span class="badge installed">8</span>
+        </div>
+      </div>
+
+      <!-- Catalogs -->
+      <div class="source-section">
+        <div class="source-header">
+          <span>Catalogs</span>
+          <span class="count">3</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Anthropic Skills
+          <span class="badge">24</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          My Team Skills
+          <span class="badge">9</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-7l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/></svg>
+          ~/projects/skills
+          <span class="badge">5</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-add-catalog" onclick="document.getElementById('modal-add').classList.remove('hidden')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+        Add Catalog
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">All Installed Skills</div>
+          <div class="topbar-subtitle">12 skills across 2 providers</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="view-toggle">
+          <button class="active" title="Grid view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <button title="List view" onclick="showPage('list')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          </button>
+        </div>
+        <button class="btn-icon" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Category filter tabs -->
+    <div class="category-tabs">
+      <div class="category-tab active">All</div>
+      <div class="category-tab">Development</div>
+      <div class="category-tab">Design</div>
+      <div class="category-tab">DevOps</div>
+      <div class="category-tab">Documentation</div>
+      <div class="category-tab">Testing</div>
+      <div class="category-tab">AI / LLM</div>
+    </div>
+
+    <!-- Stats -->
+    <div style="padding-top: 16px;">
+      <div class="stats-bar">
+        <div class="stat">
+          <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          </div>
+          <div>
+            <div class="stat-value">38</div>
+            <div class="stat-label">Total Skills</div>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div>
+            <div class="stat-value">12</div>
+            <div class="stat-label">Installed</div>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87"/></svg>
+          </div>
+          <div>
+            <div class="stat-value">3</div>
+            <div class="stat-label">Catalogs</div>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </div>
+          <div>
+            <div class="stat-value">4</div>
+            <div class="stat-label">Custom</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills Grid -->
+    <div class="content-area">
+      <div class="skills-grid">
+        <!-- Card 1: Development -->
+        <div class="skill-card selected" onclick="this.classList.toggle('selected')">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              <span class="dot"></span>
+              Swift Concurrency
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">Expert guidance on async/await, actors, Sendable, and Swift 6 migration patterns.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v2.1.0</span>
+            <span class="tag tag-category">Development</span>
+            <span class="tag tag-claude">Claude Code</span>
+            <span class="tag tag-codex">Codex</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Design -->
+        <div class="skill-card">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              <span class="dot"></span>
+              UI/UX Pro Max
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">50+ design styles, 97 color palettes, and UX guidelines for building professional interfaces.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v1.5.0</span>
+            <span class="tag tag-category">Design</span>
+            <span class="tag tag-claude">Claude Code</span>
+            <span class="tag tag-refs">3 refs</span>
+            <span class="tag tag-scripts">2 scripts</span>
+          </div>
+        </div>
+
+        <!-- Card 3: TDD -->
+        <div class="skill-card">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              <span class="dot"></span>
+              TDD Chicago School
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">State-based TDD with emergent design for Kotlin projects. Chicago School principles.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v1.0.0</span>
+            <span class="tag tag-category">Testing</span>
+            <span class="tag tag-claude">Claude Code</span>
+          </div>
+        </div>
+
+        <!-- Card 4: DevOps -->
+        <div class="skill-card">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              Xcode Cloud CI/CD
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">Manage Xcode Cloud CI/CD workflows, trigger builds, check status, and monitor pipelines.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v1.2.0</span>
+            <span class="tag tag-category">DevOps</span>
+          </div>
+        </div>
+
+        <!-- Card 5: Feature Dev -->
+        <div class="skill-card">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              <span class="dot"></span>
+              Feature Development
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">Guided feature development with codebase understanding, architecture focus, and code review.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v3.0.0</span>
+            <span class="tag tag-category">Development</span>
+            <span class="tag tag-claude">Claude Code</span>
+            <span class="tag tag-codex">Codex</span>
+          </div>
+        </div>
+
+        <!-- Card 6: Documentation -->
+        <div class="skill-card">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              App Store Changelog
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">Generate user-facing App Store release notes from git history and tags automatically.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v1.0.0</span>
+            <span class="tag tag-category">Documentation</span>
+          </div>
+        </div>
+
+        <!-- Card 7: AI -->
+        <div class="skill-card">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              <span class="dot"></span>
+              Claude API
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">Build apps with Claude API and Anthropic SDK. Tool use, agent patterns, streaming.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v2.0.0</span>
+            <span class="tag tag-category">AI / LLM</span>
+            <span class="tag tag-claude">Claude Code</span>
+            <span class="tag tag-refs">5 refs</span>
+          </div>
+        </div>
+
+        <!-- Card 8: SwiftUI -->
+        <div class="skill-card">
+          <div class="skill-card-header">
+            <div class="skill-card-name">
+              SwiftUI Expert
+            </div>
+            <div class="skill-card-actions">
+              <button class="btn-icon" title="Install">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skill-card-desc">Best practices for state management, view composition, performance, and iOS 26+ Liquid Glass.</div>
+          <div class="skill-card-meta">
+            <span class="tag tag-version">v1.3.0</span>
+            <span class="tag tag-category">Development</span>
+            <span class="tag tag-scripts">1 script</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Detail Panel -->
+  <aside class="detail-panel">
+    <div class="detail-panel-header">
+      <div>
+        <div class="detail-name">Swift Concurrency</div>
+        <div class="detail-source">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87"/></svg>
+          Anthropic Skills
+        </div>
+      </div>
+      <button class="detail-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="detail-body">
+      <div class="detail-section">
+        <div class="detail-section-title">Description</div>
+        <div class="detail-desc">Expert guidance on Swift Concurrency best practices, patterns, and implementation. Covers async/await, actors, Sendable conformance, @MainActor isolation, and Swift 6 migration strategies.</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Metadata</div>
+        <div class="detail-meta-grid">
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">Version</div>
+            <div class="detail-meta-value">2.1.0</div>
+          </div>
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">References</div>
+            <div class="detail-meta-value">3 files</div>
+          </div>
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">Scripts</div>
+            <div class="detail-meta-value">1 file</div>
+          </div>
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">Source</div>
+            <div class="detail-meta-value" style="font-size:11px;">GitHub</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Installation</div>
+        <div class="provider-cards">
+          <div class="provider-card installed">
+            <div class="provider-icon claude">C</div>
+            <div class="provider-info">
+              <div class="provider-name">Claude Code</div>
+              <div class="provider-path">~/.claude/skills/</div>
+            </div>
+            <span class="provider-status installed">Installed</span>
+          </div>
+          <div class="provider-card installed">
+            <div class="provider-icon codex">X</div>
+            <div class="provider-info">
+              <div class="provider-name">Codex</div>
+              <div class="provider-path">~/.codex/skills/</div>
+            </div>
+            <span class="provider-status installed">Installed</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Content Preview</div>
+        <div class="detail-content-preview">
+          <h3>When to Use</h3>
+          <p>Trigger when developers mention <code>async/await</code>, <code>actors</code>, <code>@MainActor</code>, or <code>Sendable</code>.</p>
+          <h3>Key Patterns</h3>
+          <p>Structured concurrency with <code>TaskGroup</code>, actor isolation for shared state, <code>AsyncSequence</code> for streaming data.</p>
+          <h3>Migration Guide</h3>
+          <p>Step-by-step Swift 6 migration: enable strict checking, fix <code>Sendable</code> conformance, refactor completion handlers.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-footer">
+      <button class="btn btn-danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Uninstall
+      </button>
+      <button class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-7l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/></svg>
+        Finder
+      </button>
+      <button class="btn btn-primary" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+        Fully Installed
+      </button>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== ADD CATALOG MODAL ===== -->
+<div class="modal-overlay hidden" id="modal-add" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Skill Catalog</h2>
+      <p>Import skills from a GitHub repository or local directory</p>
+    </div>
+    <div class="modal-body">
+      <div class="source-option selected">
+        <div class="source-option-header">
+          <div class="source-option-icon github">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          </div>
+          <div>
+            <div class="source-option-title">GitHub Repository</div>
+          </div>
+        </div>
+        <div class="source-option-desc">Clone a GitHub repository containing skills. The repo will be cached locally for offline access.</div>
+        <div class="source-option-input">
+          <input type="text" placeholder="https://github.com/org/skills-repo" />
+        </div>
+      </div>
+
+      <div class="source-option">
+        <div class="source-option-header">
+          <div class="source-option-icon folder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-7l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/></svg>
+          </div>
+          <div>
+            <div class="source-option-title">Local Directory</div>
+          </div>
+        </div>
+        <div class="source-option-desc">Add skills from a local folder. Each subfolder with a SKILL.md file will be recognized as a skill.</div>
+        <div class="source-option-input" style="display:flex;gap:8px;">
+          <input type="text" placeholder="~/projects/my-skills" style="flex:1;" />
+          <button class="btn btn-secondary" style="white-space:nowrap;">Browse</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-add').classList.add('hidden')">Cancel</button>
+      <button class="btn btn-primary">Add Catalog</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE NAV (for prototype navigation) ===== -->
+<div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;z-index:200;">
+  <button onclick="showPage('browse')" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Browse</button>
+  <button onclick="showPage('editor')" style="padding:6px 14px;background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Editor</button>
+  <button onclick="showPage('install')" style="padding:6px 14px;background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Install</button>
+</div>
+
+<script>
+// Simple prototype page switching
+function showPage(page) {
+  const app = document.getElementById('page-browse');
+  const btns = document.querySelectorAll('[style*="position:fixed"] button');
+  btns.forEach(b => {
+    b.style.background = 'var(--bg-card)';
+    b.style.color = 'var(--text-secondary)';
+    b.style.border = '1px solid var(--border)';
+  });
+
+  if (page === 'browse') {
+    app.querySelector('.main .content-area').innerHTML = document.getElementById('grid-content')?.innerHTML || app.querySelector('.content-area').innerHTML;
+    btns[0].style.background = 'var(--accent)';
+    btns[0].style.color = 'white';
+    btns[0].style.border = 'none';
+  }
+
+  if (page === 'editor') {
+    btns[1].style.background = 'var(--accent)';
+    btns[1].style.color = 'white';
+    btns[1].style.border = 'none';
+    // Show editor in main area
+    app.querySelector('.content-area').innerHTML = `
+      <div class="editor-container" style="height:calc(100vh - 160px);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);">
+        <div class="editor-pane">
+          <div class="editor-pane-header">
+            <span>Editor</span>
+            <span class="modified">Modified</span>
+          </div>
+          <textarea class="editor-textarea"># Swift Concurrency Expert
+
+Expert guidance on Swift Concurrency best practices.
+
+## When to Use
+
+Trigger when developers mention:
+- \`async/await\` patterns
+- \`actors\` and actor isolation
+- \`@MainActor\` usage
+- \`Sendable\` conformance
+- Swift 6 strict concurrency
+
+## Key Patterns
+
+### Structured Concurrency
+\`\`\`swift
+try await withThrowingTaskGroup(of: Result.self) { group in
+    for item in items {
+        group.addTask { try await process(item) }
+    }
+    return try await group.reduce(into: []) { $0.append($1) }
+}
+\`\`\`
+
+### Actor Isolation
+\`\`\`swift
+actor DataStore {
+    private var cache: [String: Data] = [:]
+
+    func get(_ key: String) -> Data? { cache[key] }
+    func set(_ key: String, data: Data) { cache[key] = data }
+}
+\`\`\`</textarea>
+        </div>
+        <div class="editor-pane">
+          <div class="editor-pane-header">
+            <span>Preview</span>
+          </div>
+          <div class="preview-area">
+            <h1>Swift Concurrency Expert</h1>
+            <p>Expert guidance on Swift Concurrency best practices.</p>
+            <h2>When to Use</h2>
+            <p>Trigger when developers mention:</p>
+            <p>&bull; <code>async/await</code> patterns<br>&bull; <code>actors</code> and actor isolation<br>&bull; <code>@MainActor</code> usage<br>&bull; <code>Sendable</code> conformance<br>&bull; Swift 6 strict concurrency</p>
+            <h2>Key Patterns</h2>
+            <h2 style="font-size:14px;">Structured Concurrency</h2>
+            <pre><code>try await withThrowingTaskGroup(of: Result.self) { group in
+    for item in items {
+        group.addTask { try await process(item) }
+    }
+    return try await group.reduce(into: []) { $0.append($1) }
+}</code></pre>
+            <h2 style="font-size:14px;">Actor Isolation</h2>
+            <pre><code>actor DataStore {
+    private var cache: [String: Data] = [:]
+
+    func get(_ key: String) -> Data? { cache[key] }
+    func set(_ key: String, data: Data) { cache[key] = data }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (page === 'install') {
+    btns[2].style.background = 'var(--accent)';
+    btns[2].style.color = 'white';
+    btns[2].style.border = 'none';
+    document.getElementById('modal-add').classList.remove('hidden');
+  }
+}
+
+// Card selection
+document.querySelectorAll('.skill-card').forEach(card => {
+  card.addEventListener('click', function() {
+    document.querySelectorAll('.skill-card').forEach(c => c.classList.remove('selected'));
+    this.classList.add('selected');
+  });
+});
+
+// Category tab switching
+document.querySelectorAll('.category-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Nav item switching
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', function() {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Source option selection in modal
+document.querySelectorAll('.source-option').forEach(opt => {
+  opt.addEventListener('click', function() {
+    document.querySelectorAll('.source-option').forEach(o => o.classList.remove('selected'));
+    this.classList.add('selected');
+  });
+});
+</script>
+
+</body>
+</html>
