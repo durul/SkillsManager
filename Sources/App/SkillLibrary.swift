@@ -78,9 +78,11 @@ public final class SkillLibrary {
             skills = skills.filter { $0.isInstalledFor(provider) }
         }
 
-        // Filter by tag
+        // Filter by tag (SKILL.md tags + user tags)
         if let tag = selectedTag {
-            skills = skills.filter { $0.tags.contains(tag) }
+            skills = skills.filter {
+                $0.tags.contains(tag) || userTagRepository?.tags(for: $0.uniqueKey).contains(tag) == true
+            }
         }
 
         // Filter by search
@@ -91,12 +93,18 @@ public final class SkillLibrary {
         return skills
     }
 
-    /// Tag counts for the current catalog's skills
+    /// Tag counts for the current catalog's skills (SKILL.md + user tags)
     public var tagCounts: [String: Int] {
         var counts: [String: Int] = [:]
         for skill in selectedCatalog.skills {
             for tag in skill.tags {
                 counts[tag, default: 0] += 1
+            }
+            // Include user tags
+            if let userTags = userTagRepository?.tags(for: skill.uniqueKey), !userTags.isEmpty {
+                for tag in userTags {
+                    counts[tag, default: 0] += 1
+                }
             }
         }
         return counts
@@ -391,68 +399,19 @@ public final class SkillLibrary {
 
     // MARK: - User Tags
 
-    /// Tag counts combining SKILL.md tags + user-added tags
-    public func tagCountsIncludingUserTags() async -> [String: Int] {
-        var counts = tagCounts
-        if let userTagRepo = userTagRepository {
-            let userCounts = await userTagRepo.allTagCounts()
-            for (tag, count) in userCounts {
-                counts[tag, default: 0] += count
-            }
-        }
-        return counts
-    }
-
-    /// Filtered skills matching selected tag (including user tags)
-    public func filteredSkillsIncludingUserTags() async -> [Skill] {
-        var skills = selectedCatalog.skills
-
-        // Filter by provider
-        if case .provider(let provider) = selectedSource {
-            skills = skills.filter { $0.isInstalledFor(provider) }
-        }
-
-        // Filter by tag (SKILL.md + user tags)
-        if let tag = selectedTag {
-            if let userTagRepo = userTagRepository {
-                var matched: [Skill] = []
-                for skill in skills {
-                    if skill.tags.contains(tag) {
-                        matched.append(skill)
-                    } else {
-                        let userTags = await userTagRepo.tags(for: skill.uniqueKey)
-                        if userTags.contains(tag) {
-                            matched.append(skill)
-                        }
-                    }
-                }
-                skills = matched
-            } else {
-                skills = skills.filter { $0.tags.contains(tag) }
-            }
-        }
-
-        // Filter by search
-        if !searchQuery.isEmpty {
-            skills = skills.filter { $0.matches(query: searchQuery) }
-        }
-
-        return skills
-    }
-
     /// Get user tags for a specific skill
-    public func userTags(for skillKey: String) async -> Set<String> {
-        await userTagRepository?.tags(for: skillKey) ?? []
+    public func userTags(for skillKey: String) -> Set<String> {
+        userTagRepository?.tags(for: skillKey) ?? []
     }
 
     /// Add a user tag to a skill
-    public func addUserTag(_ tag: String, to skillKey: String) async {
-        await userTagRepository?.addTag(tag, to: skillKey)
+    public func addUserTag(_ tag: String, to skillKey: String) {
+        userTagRepository?.addTag(tag, to: skillKey)
     }
 
     /// Remove a user tag from a skill
-    public func removeUserTag(_ tag: String, from skillKey: String) async {
-        await userTagRepository?.removeTag(tag, from: skillKey)
+    public func removeUserTag(_ tag: String, from skillKey: String) {
+        userTagRepository?.removeTag(tag, from: skillKey)
     }
 
 }

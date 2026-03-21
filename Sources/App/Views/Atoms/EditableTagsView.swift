@@ -7,9 +7,12 @@ struct EditableTagsView: View {
     let skill: Skill
     @Bindable var library: SkillLibrary
 
-    @State private var userTags: Set<String> = []
     @State private var isAddingTag = false
     @State private var newTagText = ""
+
+    private var userTags: Set<String> {
+        library.userTags(for: skill.uniqueKey)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -35,9 +38,6 @@ struct EditableTagsView: View {
             tagLegend
             tagAnnotation
         }
-        .task {
-            userTags = await library.userTags(for: skill.uniqueKey)
-        }
     }
 
     // MARK: - Auto Tag (purple)
@@ -62,10 +62,7 @@ struct EditableTagsView: View {
                 .fontWeight(.medium)
 
             Button {
-                Task {
-                    await library.removeUserTag(tag, from: skill.uniqueKey)
-                    userTags = await library.userTags(for: skill.uniqueKey)
-                }
+                library.removeUserTag(tag, from: skill.uniqueKey)
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 7, weight: .bold))
@@ -194,10 +191,7 @@ struct EditableTagsView: View {
     private func commitTag() {
         let tag = newTagText.trimmingCharacters(in: .whitespaces).lowercased()
         if !tag.isEmpty && !skill.tags.contains(tag) {
-            Task {
-                await library.addUserTag(tag, to: skill.uniqueKey)
-                userTags = await library.userTags(for: skill.uniqueKey)
-            }
+            library.addUserTag(tag, to: skill.uniqueKey)
         }
         newTagText = ""
         isAddingTag = false

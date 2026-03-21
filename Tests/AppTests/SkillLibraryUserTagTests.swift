@@ -10,13 +10,13 @@ struct SkillLibraryUserTagTests {
 
     // MARK: - Tag Counts Include User Tags
 
-    @Test func `tagCounts includes user tags for skills in current catalog`() async {
+    @Test func `tagCounts includes user tags for skills in current catalog`() {
         let skill = makeSkill(id: "swift-concurrency", tags: ["development", "swift"])
         let localCatalog = makeLocalCatalog(skills: [skill])
         let mockInstaller = MockSkillInstaller()
         let mockUserTags = MockUserTagRepository()
 
-        given(mockUserTags).allTagCounts().willReturn(["favorites": 1, "my-team": 1])
+        given(mockUserTags).tags(for: .value("swift-concurrency")).willReturn(["favorites", "my-team"])
 
         let library = SkillLibrary(
             localCatalog: localCatalog,
@@ -24,7 +24,7 @@ struct SkillLibraryUserTagTests {
             userTagRepository: mockUserTags
         )
 
-        let counts = await library.tagCountsIncludingUserTags()
+        let counts = library.tagCounts
 
         #expect(counts["development"] == 1)
         #expect(counts["swift"] == 1)
@@ -34,14 +34,13 @@ struct SkillLibraryUserTagTests {
 
     // MARK: - Filter By User Tag
 
-    @Test func `filteredSkills includes skills matching user tag`() async {
+    @Test func `filteredSkills includes skills matching user tag`() {
         let skill1 = makeSkill(id: "skill-a", tags: ["development"])
         let skill2 = makeSkill(id: "skill-b", tags: ["testing"])
         let localCatalog = makeLocalCatalog(skills: [skill1, skill2])
         let mockInstaller = MockSkillInstaller()
         let mockUserTags = MockUserTagRepository()
 
-        // skill-a has user tag "favorites"
         given(mockUserTags).tags(for: .value("skill-a")).willReturn(["favorites"])
         given(mockUserTags).tags(for: .value("skill-b")).willReturn([])
 
@@ -52,13 +51,13 @@ struct SkillLibraryUserTagTests {
         )
         library.selectedTag = "favorites"
 
-        let filtered = await library.filteredSkillsIncludingUserTags()
+        let filtered = library.filteredSkills
 
         #expect(filtered.count == 1)
         #expect(filtered.first?.id == "skill-a")
     }
 
-    @Test func `filteredSkills includes skills matching SKILL md tag even with user tag repo`() async {
+    @Test func `filteredSkills includes skills matching SKILL md tag`() {
         let skill = makeSkill(id: "skill-a", tags: ["development"])
         let localCatalog = makeLocalCatalog(skills: [skill])
         let mockInstaller = MockSkillInstaller()
@@ -73,7 +72,7 @@ struct SkillLibraryUserTagTests {
         )
         library.selectedTag = "development"
 
-        let filtered = await library.filteredSkillsIncludingUserTags()
+        let filtered = library.filteredSkills
 
         #expect(filtered.count == 1)
         #expect(filtered.first?.id == "skill-a")
@@ -81,7 +80,7 @@ struct SkillLibraryUserTagTests {
 
     // MARK: - Add / Remove User Tags
 
-    @Test func `addUserTag delegates to repository`() async {
+    @Test func `addUserTag delegates to repository`() {
         let localCatalog = makeLocalCatalog()
         let mockInstaller = MockSkillInstaller()
         let mockUserTags = MockUserTagRepository()
@@ -94,13 +93,10 @@ struct SkillLibraryUserTagTests {
             userTagRepository: mockUserTags
         )
 
-        await library.addUserTag("favorites", to: "skill-a")
-
-        // Verify by checking that the method was called (state-based: we trust the repo)
-        // The test passes if no error is thrown
+        library.addUserTag("favorites", to: "skill-a")
     }
 
-    @Test func `removeUserTag delegates to repository`() async {
+    @Test func `removeUserTag delegates to repository`() {
         let localCatalog = makeLocalCatalog()
         let mockInstaller = MockSkillInstaller()
         let mockUserTags = MockUserTagRepository()
@@ -113,7 +109,7 @@ struct SkillLibraryUserTagTests {
             userTagRepository: mockUserTags
         )
 
-        await library.removeUserTag("favorites", from: "skill-a")
+        library.removeUserTag("favorites", from: "skill-a")
     }
 
     // MARK: - Helpers

@@ -2,7 +2,8 @@ import Foundation
 import Domain
 
 /// Infrastructure: Persists user-added tags in UserDefaults
-public actor UserDefaultsUserTagRepository: UserTagRepository {
+/// Synchronous reads — UserDefaults is fast, no actor needed
+public final class UserDefaultsUserTagRepository: UserTagRepository, @unchecked Sendable {
 
     private static let storageKey = "skillsManager.userTags"
 
@@ -15,7 +16,6 @@ public actor UserDefaultsUserTagRepository: UserTagRepository {
     public func addTag(_ tag: String, to skillKey: String) {
         let normalized = tag.trimmingCharacters(in: .whitespaces).lowercased()
         guard !normalized.isEmpty else { return }
-
         var all = loadAll()
         all[skillKey, default: []].insert(normalized)
         save(all)
