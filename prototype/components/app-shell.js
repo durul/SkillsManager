@@ -87,12 +87,13 @@ function renderAddCatalogModal() {
 // ===== PAGE NAV (prototype navigation) =====
 function renderPageNav(activePage) {
   const pages = [
-    { id: '01-first-launch',  label: '1. First Launch' },
-    { id: '02-add-catalog',   label: '2. Add Catalog' },
+    { id: '01-first-launch',  label: '1. Launch' },
+    { id: '02-add-catalog',   label: '2. Catalog' },
     { id: '03-browse',        label: '3. Browse' },
     { id: '04-install',       label: '4. Install' },
     { id: '05-uninstall',     label: '5. Uninstall' },
     { id: '06-edit-skill',    label: '6. Edit' },
+    { id: '07-manage-tags',   label: '7. Tags' },
   ];
 
   // Detect if we're at root (index.html) or in pages/

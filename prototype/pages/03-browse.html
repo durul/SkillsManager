@@ -114,17 +114,24 @@ function renderPage() {
         </div>
       </div>
       <div class="detail-section">
-        <div class="detail-section-title">Installation</div>
+        <div class="detail-section-title">Storage</div>
+        <div style="padding:8px 12px;background:var(--bg-input);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:10px;">
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;">Installed at</div>
+          <div style="font-size:12px;font-family:var(--font-mono);">~/.agent/skills/swift-concurrency/</div>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Linked Providers</div>
         <div class="provider-cards">
           <div class="provider-card installed">
             <div class="provider-icon claude">C</div>
-            <div class="provider-info"><div class="provider-name">Claude Code</div><div class="provider-path">~/.claude/skills/</div></div>
-            <span class="provider-status installed">Installed</span>
+            <div class="provider-info"><div class="provider-name">Claude Code</div><div class="provider-path">~/.claude/skills/ &larr; symlink</div></div>
+            <span class="provider-status installed">Linked</span>
           </div>
           <div class="provider-card installed">
             <div class="provider-icon codex">X</div>
-            <div class="provider-info"><div class="provider-name">Codex</div><div class="provider-path">~/.codex/skills/</div></div>
-            <span class="provider-status installed">Installed</span>
+            <div class="provider-info"><div class="provider-name">Codex</div><div class="provider-path">~/.codex/skills/ &larr; symlink</div></div>
+            <span class="provider-status installed">Linked</span>
           </div>
         </div>
       </div>
@@ -141,7 +148,7 @@ function renderPage() {
     <div class="detail-footer">
       <button class="btn btn-danger">${Icons.trash} Uninstall</button>
       <button class="btn btn-secondary">${Icons.folder} Finder</button>
-      <button class="btn btn-primary" disabled>${Icons.check} Fully Installed</button>
+      <button class="btn btn-primary" disabled>${Icons.check} All Linked</button>
     </div>
   </aside>`;
 
