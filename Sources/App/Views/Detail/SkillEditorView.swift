@@ -107,10 +107,8 @@ struct SkillEditorView: View {
                 paneHeader(title: "Preview") { EmptyView() }
 
                 ScrollView {
-                    Text(editor.draft)
-                        .font(DS.Typography.body)
-                        .foregroundStyle(DS.Colors.textSecondary)
-                        .lineSpacing(5)
+                    MarkdownView(content: editor.draft)
+                        .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(20)
                 }

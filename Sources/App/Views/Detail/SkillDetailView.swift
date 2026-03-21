@@ -132,19 +132,19 @@ struct SkillDetailView: View {
     private var contentPreviewSection: some View {
         if !skill.content.isEmpty {
             detailSection("Content Preview") {
-                Text(contentPreview)
-                    .font(DS.Typography.mono)
-                    .foregroundStyle(DS.Colors.textSecondary)
-                    .lineSpacing(5)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(DS.Colors.bgInput)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: DS.Radius.sm)
-                            .stroke(DS.Colors.border, lineWidth: 1)
-                    )
-                    .frame(maxHeight: 300)
+                ScrollView {
+                    MarkdownView(content: strippedContent)
+                        .textSelection(.enabled)
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 300)
+                .background(DS.Colors.bgInput)
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.Radius.sm)
+                        .stroke(DS.Colors.border, lineWidth: 1)
+                )
             }
         }
     }
@@ -288,16 +288,13 @@ struct SkillDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
     }
 
-    private var contentPreview: String {
-        // Strip frontmatter and show first ~500 chars
+    /// Skill content with YAML frontmatter stripped
+    private var strippedContent: String {
         var content = skill.content
         if content.hasPrefix("---") {
             if let endRange = content.range(of: "---", range: content.index(content.startIndex, offsetBy: 3)..<content.endIndex) {
                 content = String(content[endRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
-        }
-        if content.count > 500 {
-            content = String(content.prefix(500)) + "..."
         }
         return content
     }

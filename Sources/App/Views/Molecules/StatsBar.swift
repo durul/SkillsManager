@@ -32,9 +32,13 @@ struct StatsBar: View {
                 color: DS.Colors.purple,
                 bgColor: Color(hex: 0xA855F7).opacity(0.12)
             )
+
+            Spacer()
         }
+        .padding(.top, 16)
         .padding(.horizontal, 24)
         .padding(.bottom, 16)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func statItem(icon: String, value: Int, label: String, color: Color, bgColor: Color) -> some View {
@@ -56,5 +60,6 @@ struct StatsBar: View {
                     .foregroundStyle(DS.Colors.textMuted)
             }
         }
+        .fixedSize()
     }
 }
