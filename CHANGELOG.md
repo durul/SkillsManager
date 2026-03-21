@@ -5,7 +5,22 @@ All notable changes to Skills Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-03-21
+
+### Added
+- **Custom Tags**: Create and manage your own tags for organizing skills. Add, rename, and remove custom tags per skill through the new Manage Tags interface.
+- **Tag Filtering & Counts**: Filter skills by tags with real-time tag counts showing how many skills match each tag.
+- **Install from Skill Row**: Quickly install skills directly from the browse list or card view without opening the detail panel.
+- **Markdown Skill Detail**: Skill documentation now renders with styled Markdown for a richer reading experience.
+- **Reusable UI Components**: New atomic and molecular UI components (buttons, badges, tag pills) for a more consistent design system.
+
+### Improved
+- **Redesigned Main Layout**: Overhauled the main layout with updated navigation, browse, and editor views sharing a unified app shell.
+- **Updated Settings UI**: Redesigned the Updates settings panel with improved layout and clearer controls.
+- **Unified Tag Architecture**: Tags from skill files and user-defined tags are managed through a single `SkillTags` model, ensuring consistent behavior across the app.
+
+### Fixed
+- **Tag Counts**: Fixed an issue where global custom tags were not included in tag count calculations.
 
 ## [0.1.2] - 2026-01-18
 

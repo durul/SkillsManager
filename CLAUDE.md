@@ -14,9 +14,11 @@ swift test
 # Run tests for a specific target
 swift test --filter DomainTests
 swift test --filter InfrastructureTests
+swift test --filter AppTests
 
 # Run a specific test suite
 swift test --filter "SkillTests"
+swift test --filter "SkillTagsTests"
 
 # Run a specific test by name
 swift test --filter "SkillTests/skill displays provider name when set"
@@ -32,20 +34,23 @@ Three-layer architecture with clean separation:
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Domain (Sources/Domain/)                                           │
-│  - Rich domain models with behavior (Skill, SkillsCatalog, Provider)│
-│  - Protocols with @Mockable for DI (SkillRepository, GitCLIClient)  │
+│  - Rich domain models (Skill, SkillsCatalog, SkillTags, Provider)   │
+│  - Domain aggregates (@Observable: SkillsCatalog, SkillTags)        │
+│  - Protocols with @Mockable for DI                                  │
 │  - Pure business logic, no external dependencies                    │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Infrastructure (Sources/Infrastructure/)                           │
 │  - Repository implementations (LocalSkillRepository, GitHub, Git)   │
 │  - MergedSkillRepository for combining multiple sources             │
-│  - External integrations (GitHubClient, GitCLIClient, SkillParser)  │
+│  - UserDefaultsUserTagRepository for tag persistence                │
+│  - External integrations (GitCLIClient, SkillParser)                │
 │  - File system operations (FileSystemSkillInstaller)                │
 ├─────────────────────────────────────────────────────────────────────┤
 │  App (Sources/App/)                                                 │
-│  - SwiftUI views consuming domain models directly (no ViewModel)    │
-│  - SkillLibrary (@Observable) coordinates catalogs                  │
-│  - Dependency wiring in SkillsManagerApp                            │
+│  - SwiftUI views with Atomic Design (Atoms/Molecules/Organisms)     │
+│  - SkillLibrary (@Observable) coordinates catalogs + tags           │
+│  - Design tokens (DS enum) matching prototype tokens.css            │
+│  - No ViewModel layer — views consume domain directly               │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -54,14 +59,16 @@ Three-layer architecture with clean separation:
 - `@Mockable` protocol annotation generates mocks for testing
 - `MOCKING` compiler flag enabled for Domain, Infrastructure, and their tests
 - Tell-Don't-Ask: objects encapsulate behavior with their data
+- SwiftUI Atomic Design: Atoms → Molecules → Organisms → Pages
 
 ## Domain Model Hierarchy
 
 ```
-SkillLibrary (@Observable)
+SkillLibrary (@Observable, App layer coordinator)
 ├── localCatalog: SkillsCatalog     ← Installed skills (claude + codex)
-└── remoteCatalogs: [SkillsCatalog] ← GitHub skill repos
-    └── skills: [Skill]              ← Each catalog owns its skills
+├── remoteCatalogs: [SkillsCatalog] ← GitHub repos OR local directories
+│   └── skills: [Skill]             ← Each catalog owns its skills
+└── skillTags: SkillTags            ← Single shared tag management instance
 ```
 
 ### Key Domain Classes
@@ -81,15 +88,38 @@ public final class SkillsCatalog {
 }
 ```
 
-**SkillLibrary** - Coordinates catalogs:
+**SkillTags** - Domain aggregate for global tag management:
+```swift
+@Observable
+public final class SkillTags {
+    public private(set) var globalTags: Set<String>  // All user-created tags
+
+    // Queries
+    public func allTags(for skill: Skill) -> [String]        // file + custom, sorted
+    public func hasTag(_ tag: String, skill: Skill) -> Bool
+    public func tagCounts(for skills: [Skill]) -> [String: Int]
+    public func availableTags(for skillId: String) -> Set<String>
+
+    // Commands
+    public func createTag(_ tag: String, for skillId: String)  // new tag + assign
+    public func assignTag(_ tag: String, to skillId: String)   // assign existing
+    public func removeTag(_ tag: String, from skillId: String) // unassign
+}
+```
+
+**SkillLibrary** - Coordinates catalogs and tags:
 ```swift
 @Observable
 public final class SkillLibrary {
-    public let localCatalog: SkillsCatalog      // Installed skills
-    public var remoteCatalogs: [SkillsCatalog]  // Remote catalogs
+    public let localCatalog: SkillsCatalog
+    public var remoteCatalogs: [SkillsCatalog]
+    public let skillTags: SkillTags
 
     public var filteredSkills: [Skill] {
-        selectedCatalog.skills.filtered(by: searchQuery)
+        // Filters by source, provider, tag (via skillTags), and search
+    }
+    public var tagCounts: [String: Int] {
+        skillTags.tagCounts(for: selectedCatalog.skills)
     }
 }
 ```
@@ -128,21 +158,23 @@ Domain models encapsulate behavior matching user's mental model:
 ```swift
 public struct Skill: Sendable, Equatable, Identifiable {
     // User asks: "What name should I see?"
-    public var displayName: String {
-        repoPath != nil ? "\(name) (\(repoPath!))" : name
-    }
+    public var displayName: String { ... }
 
     // User asks: "Is this skill installed?"
-    public var isInstalled: Bool {
-        !installedProviders.isEmpty
-    }
+    public var isInstalled: Bool { !installedProviders.isEmpty }
 
     // User asks: "Can I edit this skill?"
-    public var isEditable: Bool {
-        source.isLocal
-    }
+    public var isEditable: Bool { source.isLocal }
+
+    // User asks: "Is this installed everywhere?"
+    public var isFullyInstalled: Bool { ... }
 }
 ```
+
+**SkillTags** models the user's mental model for tagging:
+> "I create tags to organize my skills. Tags are global labels.
+> Once a tag exists, I can assign it to any skill.
+> Tags show in the filter bar regardless of which catalog I'm viewing."
 
 ## Tell-Don't-Ask Principle
 
@@ -168,28 +200,36 @@ The app manages skills from multiple sources:
 
 - **Local Catalog**: Installed skills from `~/.claude/skills/` and `~/.codex/skills/`
   - Uses `MergedSkillRepository` to combine claude + codex providers
-- **Remote Catalogs**: GitHub repositories containing skills
-  - Uses `ClonedRepoSkillRepository` to clone and parse skills
-  - Cache cleaning handled by `SkillLibrary` (infrastructure concern)
+- **Remote Catalogs**: GitHub repositories or local directories containing skills
+  - GitHub: Uses `ClonedRepoSkillRepository` to clone and parse skills
+  - Local: Uses `LocalDirectorySkillRepository` for `file://` URLs
 
 ### Source Filter
 ```swift
 public enum SourceFilter: Hashable {
-    case local                    // Show localCatalog.skills
-    case remote(repoId: UUID)     // Show remoteCatalog.skills
+    case allInstalled               // Show localCatalog.skills
+    case provider(Provider)         // Filter by specific provider
+    case remote(repoId: UUID)       // Show remoteCatalog.skills
 }
 ```
 
 ## Persistence
 
-Remote catalogs are persisted using `SkillsCatalog.Data`:
-```swift
-public struct Data: Codable, Sendable {
-    public let id: UUID
-    public let url: String?  // nil for local
-    public let name: String
-    public let addedAt: Date
-}
+- **Remote catalogs** persisted via `UserDefaults` using `SkillsCatalog.Data` (Codable)
+- **User tags** persisted via `UserDefaultsUserTagRepository`
+- **Local catalog** rebuilt from filesystem on each load
+
+## SwiftUI View Structure (Atomic Design)
+
+```
+ContentView (Page — 3-column layout)
+├── SidebarView (Organism)
+├── Main Content
+│   ├── Topbar + CategoryTabsBar (Molecule) + StatsBar (Molecule)
+│   └── SkillCardView / SkillRowView (grid/list)
+├── SkillDetailView (Organism, right panel)
+│   └── EditableTagsView (Atom — file tags + custom tags)
+└── Sheets: AddCatalogSheet, InstallSheet, UninstallSheet
 ```
 
-Local catalog is not persisted (rebuilt from filesystem on load).
+Design tokens in `DS` enum match the HTML prototype's `tokens.css`.
