@@ -31,20 +31,29 @@ struct SkillCardView: View {
 
                     Spacer()
 
-                    // Download/install icon button
-                    Button {
-                        onInstall?()
-                    } label: {
-                        Image(systemName: "arrow.down.to.line")
-                            .font(.system(size: 11))
-                            .foregroundStyle(DS.Colors.textMuted)
+                    // Action icon: installed = checkmark, not installed = download
+                    if skill.isInstalled {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(DS.Colors.green)
                             .frame(width: 28, height: 28)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: DS.Radius.sm)
-                                    .stroke(DS.Colors.border, lineWidth: 1)
-                            )
+                            .background(Color(hex: 0x22C55E).opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                    } else {
+                        Button {
+                            onInstall?()
+                        } label: {
+                            Image(systemName: "arrow.down.to.line")
+                                .font(.system(size: 11))
+                                .foregroundStyle(DS.Colors.textMuted)
+                                .frame(width: 28, height: 28)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: DS.Radius.sm)
+                                        .stroke(DS.Colors.border, lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 .padding(.bottom, 10)
 

@@ -125,6 +125,7 @@ public final class SkillLibrary {
     // MARK: - Dependencies
 
     private let installer: SkillInstaller
+    private let userTagRepository: UserTagRepository?
     private let writerFactory: () -> SkillWriter
     private let catalogLoaderFactory: (String) -> SkillRepository
     private let cacheCleaner: (String) throws -> Void
@@ -146,6 +147,7 @@ public final class SkillLibrary {
         )
 
         self.installer = FileSystemSkillInstaller()
+        self.userTagRepository = UserDefaultsUserTagRepository()
         self.writerFactory = { LocalSkillWriter() }
         self.catalogLoaderFactory = Self.createCatalogLoader
         self.cacheCleaner = Self.cleanCacheForURL
@@ -157,6 +159,7 @@ public final class SkillLibrary {
         localCatalog: SkillsCatalog,
         remoteCatalogs: [SkillsCatalog] = [],
         installer: SkillInstaller,
+        userTagRepository: UserTagRepository? = nil,
         writerFactory: @escaping () -> SkillWriter = { LocalSkillWriter() },
         catalogLoaderFactory: @escaping (String) -> SkillRepository = { ClonedRepoSkillRepository(repoUrl: $0) },
         cacheCleaner: @escaping (String) throws -> Void = { try ClonedRepoSkillRepository.deleteClone(forRepoUrl: $0) }
@@ -164,6 +167,7 @@ public final class SkillLibrary {
         self.localCatalog = localCatalog
         self.remoteCatalogs = remoteCatalogs
         self.installer = installer
+        self.userTagRepository = userTagRepository
         self.writerFactory = writerFactory
         self.catalogLoaderFactory = catalogLoaderFactory
         self.cacheCleaner = cacheCleaner
@@ -383,6 +387,72 @@ public final class SkillLibrary {
         } catch {
             errorMessage = "Save failed: \(error.localizedDescription)"
         }
+    }
+
+    // MARK: - User Tags
+
+    /// Tag counts combining SKILL.md tags + user-added tags
+    public func tagCountsIncludingUserTags() async -> [String: Int] {
+        var counts = tagCounts
+        if let userTagRepo = userTagRepository {
+            let userCounts = await userTagRepo.allTagCounts()
+            for (tag, count) in userCounts {
+                counts[tag, default: 0] += count
+            }
+        }
+        return counts
+    }
+
+    /// Filtered skills matching selected tag (including user tags)
+    public func filteredSkillsIncludingUserTags() async -> [Skill] {
+        var skills = selectedCatalog.skills
+
+        // Filter by provider
+        if case .provider(let provider) = selectedSource {
+            skills = skills.filter { $0.isInstalledFor(provider) }
+        }
+
+        // Filter by tag (SKILL.md + user tags)
+        if let tag = selectedTag {
+            if let userTagRepo = userTagRepository {
+                var matched: [Skill] = []
+                for skill in skills {
+                    if skill.tags.contains(tag) {
+                        matched.append(skill)
+                    } else {
+                        let userTags = await userTagRepo.tags(for: skill.uniqueKey)
+                        if userTags.contains(tag) {
+                            matched.append(skill)
+                        }
+                    }
+                }
+                skills = matched
+            } else {
+                skills = skills.filter { $0.tags.contains(tag) }
+            }
+        }
+
+        // Filter by search
+        if !searchQuery.isEmpty {
+            skills = skills.filter { $0.matches(query: searchQuery) }
+        }
+
+        return skills
+    }
+
+    /// Get user tags for a specific skill
+    public func userTags(for skillKey: String) async -> Set<String> {
+        await userTagRepository?.tags(for: skillKey) ?? []
+    }
+
+    /// Add a user tag to a skill
+    public func addUserTag(_ tag: String, to skillKey: String) async {
+        await userTagRepository?.addTag(tag, to: skillKey)
+    }
+
+    /// Remove a user tag from a skill
+    public func removeUserTag(_ tag: String, from skillKey: String) async {
+        await userTagRepository?.removeTag(tag, from: skillKey)
     }
 
 }
