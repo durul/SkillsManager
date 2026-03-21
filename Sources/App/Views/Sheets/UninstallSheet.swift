@@ -59,6 +59,7 @@ struct UninstallSheet: View {
         }
         .frame(width: 420)
         .background(DS.Colors.bgSecondary)
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Choose

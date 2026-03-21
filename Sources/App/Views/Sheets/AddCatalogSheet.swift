@@ -108,6 +108,7 @@ struct AddCatalogSheet: View {
         }
         .frame(width: 460)
         .background(DS.Colors.bgSecondary)
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Source Option
@@ -150,7 +151,7 @@ struct AddCatalogSheet: View {
                             .foregroundStyle(DS.Colors.textPrimary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(DS.Colors.bgInput)
+                            .background(DS.Colors.bgPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
                             .overlay(
                                 RoundedRectangle(cornerRadius: DS.Radius.sm)

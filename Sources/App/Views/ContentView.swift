@@ -22,6 +22,7 @@ struct ContentView: View {
             }
         }
         .background(DS.Colors.bgPrimary)
+        .preferredColorScheme(.dark)
         .task {
             await library.loadSkills()
         }

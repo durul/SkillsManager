@@ -6,13 +6,8 @@ struct SettingsView: View {
     @State private var settings = AppSettings.shared
 
     var body: some View {
-        TabView {
-            UpdatesSettingsView(sparkleUpdater: sparkleUpdater, settings: settings)
-                .tabItem {
-                    Label("Updates", systemImage: "arrow.down.circle")
-                }
-        }
-        .frame(width: 450, height: 300)
+        UpdatesSettingsView(sparkleUpdater: sparkleUpdater, settings: settings)
+            .frame(width: 450, height: 320)
     }
 }
 
@@ -23,130 +18,201 @@ struct UpdatesSettingsView: View {
     @Bindable var settings: AppSettings
 
     var body: some View {
-        Form {
-            Section {
-                if sparkleUpdater?.isAvailable == true {
-                    // Check for Updates Button
-                    HStack {
-                        Button {
-                            sparkleUpdater?.checkForUpdates()
-                        } label: {
-                            HStack(spacing: DS.Spacing.sm) {
-                                if sparkleUpdater?.isCheckingForUpdates == true {
-                                    ProgressView()
-                                        .scaleEffect(0.7)
-                                        .frame(width: 16, height: 16)
-                                } else {
-                                    Image(systemName: "arrow.clockwise")
-                                        .font(.system(size: 12, weight: .semibold))
-                                }
+        VStack(spacing: 0) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.circle")
+                    .font(.system(size: 14))
+                    .foregroundStyle(DS.Colors.accent)
 
-                                Text(sparkleUpdater?.isCheckingForUpdates == true ? "Checking..." : "Check for Updates")
+                Text("Updates")
+                    .font(DS.Typography.sidebarHeader)
+                    .foregroundStyle(DS.Colors.textPrimary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
+            .overlay(alignment: .bottom) {
+                Divider().overlay(DS.Colors.border)
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Software Update section
+                    settingsSection("Software Update") {
+                        if sparkleUpdater?.isAvailable == true {
+                            // Check for Updates
+                            HStack {
+                                Button {
+                                    sparkleUpdater?.checkForUpdates()
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        if sparkleUpdater?.isCheckingForUpdates == true {
+                                            ProgressView()
+                                                .scaleEffect(0.6)
+                                                .frame(width: 14, height: 14)
+                                        } else {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.system(size: 11))
+                                        }
+
+                                        Text(sparkleUpdater?.isCheckingForUpdates == true ? "Checking..." : "Check for Updates")
+                                            .font(DS.Typography.body)
+                                    }
+                                    .foregroundStyle(DS.Colors.textPrimary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 7)
+                                    .background(DS.Colors.bgInput)
+                                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: DS.Radius.sm)
+                                            .stroke(DS.Colors.border, lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(sparkleUpdater?.canCheckForUpdates != true || sparkleUpdater?.isCheckingForUpdates == true)
+
+                                Spacer()
+
+                                TagChip.version(appVersion)
+                            }
+
+                            // Last check
+                            if let lastCheck = sparkleUpdater?.lastUpdateCheckDate {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "clock")
+                                        .font(.system(size: 9))
+                                    Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
+                                        .font(DS.Typography.caption)
+                                }
+                                .foregroundStyle(DS.Colors.textMuted)
+                            }
+
+                            // Update available
+                            if sparkleUpdater?.isUpdateAvailable == true,
+                               let version = sparkleUpdater?.availableVersion {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(DS.Colors.green)
+
+                                    Text("Version \(version) is available")
+                                        .font(DS.Typography.body)
+                                        .foregroundStyle(DS.Colors.textPrimary)
+
+                                    Spacer()
+
+                                    Button {
+                                        sparkleUpdater?.checkForUpdates()
+                                    } label: {
+                                        Text("Update Now")
+                                            .font(DS.Typography.body)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 6)
+                                            .background(DS.Colors.green)
+                                            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(12)
+                                .background(Color(hex: 0x22C55E).opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
+                            }
+                        } else {
+                            HStack(spacing: 8) {
+                                Image(systemName: "hammer.fill")
+                                    .font(.system(size: 11))
+                                Text("Updates unavailable in debug builds")
                                     .font(DS.Typography.body)
                             }
-                        }
-                        .disabled(sparkleUpdater?.canCheckForUpdates != true || sparkleUpdater?.isCheckingForUpdates == true)
-
-                        Spacer()
-
-                        // Version badge
-                        Text("v\(appVersion)")
-                            .font(DS.Typography.tag)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(DS.Colors.bgInput)
                             .foregroundStyle(DS.Colors.textMuted)
-                            .clipShape(Capsule())
-                    }
-
-                    // Last check info
-                    if let lastCheck = sparkleUpdater?.lastUpdateCheckDate {
-                        HStack(spacing: DS.Spacing.xs) {
-                            Image(systemName: "clock")
-                                .font(.system(size: 10))
-                                .foregroundStyle(DS.Colors.textMuted)
-
-                            Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
-                                .font(DS.Typography.caption)
-                                .foregroundStyle(DS.Colors.textMuted)
                         }
                     }
 
-                    // Update available indicator
-                    if sparkleUpdater?.isUpdateAvailable == true,
-                       let version = sparkleUpdater?.availableVersion {
-                        HStack(spacing: DS.Spacing.sm) {
-                            Image(systemName: "arrow.down.circle.fill")
-                                .foregroundStyle(DS.Colors.green)
+                    // Preferences section
+                    settingsSection("Preferences") {
+                        // Auto check toggle
+                        settingsToggle(
+                            isOn: Binding(
+                                get: { sparkleUpdater?.automaticallyChecksForUpdates ?? true },
+                                set: { sparkleUpdater?.automaticallyChecksForUpdates = $0 }
+                            ),
+                            title: "Check for updates automatically",
+                            isDisabled: sparkleUpdater?.isAvailable != true
+                        )
 
-                            Text("Version \(version) is available")
-                                .font(DS.Typography.body)
-                                .foregroundStyle(DS.Colors.textPrimary)
+                        Divider().overlay(DS.Colors.border)
 
-                            Spacer()
-
-                            Button("Update Now") {
-                                sparkleUpdater?.checkForUpdates()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(DS.Colors.green)
-                        }
-                        .padding(DS.Spacing.md)
-                        .background(DS.Colors.green.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md))
-                    }
-                } else {
-                    // Debug mode message
-                    HStack(spacing: DS.Spacing.sm) {
-                        Image(systemName: "hammer.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(DS.Colors.textMuted)
-
-                        Text("Updates unavailable in debug builds")
-                            .font(DS.Typography.body)
-                            .foregroundStyle(DS.Colors.textMuted)
+                        // Beta toggle
+                        settingsToggle(
+                            isOn: $settings.receiveBetaUpdates,
+                            title: "Include beta versions",
+                            subtitle: "Get early access to new features",
+                            isDisabled: sparkleUpdater?.isAvailable != true
+                        )
                     }
                 }
-            } header: {
-                Text("Software Update")
-            }
-
-            Section {
-                // Auto updates toggle
-                Toggle("Check for updates automatically", isOn: Binding(
-                    get: { sparkleUpdater?.automaticallyChecksForUpdates ?? true },
-                    set: { sparkleUpdater?.automaticallyChecksForUpdates = $0 }
-                ))
-                .disabled(sparkleUpdater?.isAvailable != true)
-
-                // Beta updates toggle
-                Toggle(isOn: $settings.receiveBetaUpdates) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Include beta versions")
-                        Text("Get early access to new features")
-                            .font(DS.Typography.caption)
-                            .foregroundStyle(DS.Colors.textMuted)
-                    }
-                }
-                .disabled(sparkleUpdater?.isAvailable != true)
-            } header: {
-                Text("Preferences")
+                .padding(24)
             }
         }
-        .formStyle(.grouped)
-        .padding()
+        .background(DS.Colors.bgPrimary)
+        .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Components
+
+    private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title.uppercased())
+                .font(DS.Typography.sectionTitle)
+                .tracking(0.5)
+                .foregroundStyle(DS.Colors.textMuted)
+
+            VStack(alignment: .leading, spacing: 10) {
+                content()
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DS.Colors.bgSecondary)
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md))
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.md)
+                    .stroke(DS.Colors.border, lineWidth: 1)
+            )
+        }
+    }
+
+    private func settingsToggle(
+        isOn: Binding<Bool>,
+        title: String,
+        subtitle: String? = nil,
+        isDisabled: Bool = false
+    ) -> some View {
+        Toggle(isOn: isOn) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(DS.Typography.body)
+                    .foregroundStyle(DS.Colors.textPrimary)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(DS.Typography.caption)
+                        .foregroundStyle(DS.Colors.textMuted)
+                }
+            }
+        }
+        .toggleStyle(.switch)
+        .tint(DS.Colors.accent)
+        .disabled(isDisabled)
     }
 
     // MARK: - App Info
 
-    /// The app version from the bundle
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-    }
-
-    /// The app build number from the bundle
-    private var appBuild: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
     }
 }
 #endif
