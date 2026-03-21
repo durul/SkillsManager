@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — 7. Manage Tags</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../components/tokens.css">
+<link rel="stylesheet" href="../components/layout.css">
+<link rel="stylesheet" href="../components/buttons.css">
+<link rel="stylesheet" href="../components/sidebar.css">
+<link rel="stylesheet" href="../components/skill-card.css">
+<link rel="stylesheet" href="../components/detail-panel.css">
+<link rel="stylesheet" href="../components/modal.css">
+<style>
+/* Editable tags */
+.tags-editable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: default;
+  transition: all var(--transition);
+}
+.tag-chip.auto {
+  background: var(--purple-subtle);
+  color: var(--purple);
+}
+.tag-chip.user {
+  background: var(--cyan-subtle);
+  color: var(--cyan);
+}
+.tag-chip .remove {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition);
+  margin-left: 2px;
+}
+.tag-chip:hover .remove { opacity: 1; }
+.tag-chip .remove:hover { background: rgba(255,255,255,0.15); }
+.tag-chip .remove svg { width: 10px; height: 10px; }
+
+/* Add tag input */
+.tag-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all var(--transition);
+}
+.tag-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+.tag-add-btn svg { width: 10px; height: 10px; }
+
+.tag-input-inline {
+  display: inline-flex;
+  align-items: center;
+}
+.tag-input-inline input {
+  width: 80px;
+  padding: 3px 8px;
+  font-size: 11px;
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+/* Tag legend */
+.tag-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.tag-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tag-legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+}
+.tag-legend-dot.auto { background: var(--purple-subtle); border: 1px solid var(--purple); }
+.tag-legend-dot.user { background: var(--cyan-subtle); border: 1px solid var(--cyan); }
+
+/* Annotation callout */
+.annotation {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--accent-subtle);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius-sm);
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.annotation svg { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<div class="app detail-open" id="app-root"></div>
+
+<script src="../components/icons.js"></script>
+<script src="../components/app-shell.js"></script>
+<script>
+// ===== JOURNEY 7: Manage Tags =====
+// Shows how tags work: auto-detected from SKILL.md + user-added custom tags.
+// Tags appear in detail panel and are editable inline.
+
+Icons.info = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`;
+
+function renderPage() {
+  const sidebar = renderSidebar({ activeNav: 'all-installed' });
+
+  const main = `
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">All Installed Skills</div>
+          <div class="topbar-subtitle">12 skills &mdash; filter by tags below</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="view-toggle">
+          <button class="active">${Icons.gridView}</button>
+          <button>${Icons.listView}</button>
+        </div>
+        <button class="btn-icon" title="Refresh">${Icons.refresh}</button>
+      </div>
+    </div>
+
+    <div class="category-tabs">
+      <div class="category-tab active" onclick="selectTab(this)">All <span style="color:var(--text-muted);font-size:10px;">12</span></div>
+      <div class="category-tab" onclick="selectTab(this)">development <span style="color:var(--text-muted);font-size:10px;">5</span></div>
+      <div class="category-tab" onclick="selectTab(this)">design <span style="color:var(--text-muted);font-size:10px;">2</span></div>
+      <div class="category-tab" onclick="selectTab(this)">testing <span style="color:var(--text-muted);font-size:10px;">2</span></div>
+      <div class="category-tab" onclick="selectTab(this)">my-team <span style="color:var(--text-muted);font-size:10px;">3</span></div>
+      <div class="category-tab" onclick="selectTab(this)">favorites <span style="color:var(--text-muted);font-size:10px;">4</span></div>
+    </div>
+
+    <div class="content-area">
+      <div class="skills-grid">
+        ${card('Swift Concurrency', 'Expert guidance on async/await, actors, Sendable.', '2.1.0', true, ['claude','codex'], true)}
+        ${card('UI/UX Pro Max', '50+ design styles, 97 color palettes, UX guidelines.', '1.5.0', true, ['claude'])}
+        ${card('TDD Chicago School', 'State-based TDD with emergent design.', '1.0.0', true, ['claude'])}
+        ${card('Feature Development', 'Guided feature dev with codebase understanding.', '3.0.0', true, ['claude','codex'])}
+        ${card('Claude API', 'Build apps with Claude API and Anthropic SDK.', '2.0.0', true, ['claude'])}
+        ${card('Xcode Cloud CI/CD', 'Manage Xcode Cloud workflows.', '1.2.0', true, ['claude'])}
+      </div>
+    </div>
+  </main>`;
+
+  // Detail panel with EDITABLE TAGS
+  const detail = `
+  <aside class="detail-panel">
+    <div class="detail-panel-header">
+      <div>
+        <div class="detail-name">Swift Concurrency</div>
+        <div class="detail-source">${Icons.github} Anthropic Skills</div>
+      </div>
+      <button class="detail-close">${Icons.close}</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-section">
+        <div class="detail-section-title">Description</div>
+        <div class="detail-desc">Expert guidance on Swift Concurrency best practices. Covers async/await, actors, Sendable, @MainActor, and Swift 6 migration.</div>
+      </div>
+
+      <!-- ===== TAGS SECTION (THE KEY FEATURE) ===== -->
+      <div class="detail-section">
+        <div class="detail-section-title">Tags</div>
+        <div class="tags-editable" id="tags-container">
+          <!-- Auto-detected from SKILL.md frontmatter (read-only for remote) -->
+          <span class="tag-chip auto">development</span>
+          <span class="tag-chip auto">swift</span>
+          <span class="tag-chip auto">concurrency</span>
+
+          <!-- User-added tags (editable, stored locally) -->
+          <span class="tag-chip user">favorites <span class="remove" onclick="this.parentElement.remove()">${Icons.close}</span></span>
+          <span class="tag-chip user">my-team <span class="remove" onclick="this.parentElement.remove()">${Icons.close}</span></span>
+
+          <!-- Add tag button -->
+          <button class="tag-add-btn" onclick="showTagInput(this)">${Icons.plus} add</button>
+        </div>
+
+        <div class="tag-legend">
+          <div class="tag-legend-item"><div class="tag-legend-dot auto"></div> From SKILL.md</div>
+          <div class="tag-legend-item"><div class="tag-legend-dot user"></div> Custom (you)</div>
+        </div>
+
+        <div class="annotation">
+          ${Icons.info}
+          <div>
+            <strong style="color:var(--accent);">Purple tags</strong> are auto-detected from the <code style="background:rgba(59,130,246,0.1);padding:1px 4px;border-radius:3px;font-family:var(--font-mono);font-size:10px;">tags</code> field in SKILL.md frontmatter.<br>
+            <strong style="color:var(--cyan);">Cyan tags</strong> are custom tags you added. They're stored locally and won't modify the skill file.<br>
+            Both types appear as filter tabs above the grid.
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Metadata</div>
+        <div class="detail-meta-grid">
+          <div class="detail-meta-item"><div class="detail-meta-label">Version</div><div class="detail-meta-value">2.1.0</div></div>
+          <div class="detail-meta-item"><div class="detail-meta-label">References</div><div class="detail-meta-value">3 files</div></div>
+          <div class="detail-meta-item"><div class="detail-meta-label">Scripts</div><div class="detail-meta-value">1 file</div></div>
+          <div class="detail-meta-item"><div class="detail-meta-label">Source</div><div class="detail-meta-value" style="font-size:11px;">GitHub</div></div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Installation</div>
+        <div class="provider-cards">
+          <div class="provider-card installed">
+            <div class="provider-icon claude">C</div>
+            <div class="provider-info"><div class="provider-name">Claude Code</div><div class="provider-path">~/.claude/skills/</div></div>
+            <span class="provider-status installed">Installed</span>
+          </div>
+          <div class="provider-card installed">
+            <div class="provider-icon codex">X</div>
+            <div class="provider-info"><div class="provider-name">Codex</div><div class="provider-path">~/.codex/skills/</div></div>
+            <span class="provider-status installed">Installed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-footer">
+      <button class="btn btn-danger">${Icons.trash} Uninstall</button>
+      <button class="btn btn-secondary">${Icons.folder} Finder</button>
+      <button class="btn btn-primary" disabled>${Icons.check} Fully Installed</button>
+    </div>
+  </aside>`;
+
+  document.getElementById('app-root').innerHTML = sidebar + main + detail;
+  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
+  document.body.insertAdjacentHTML('beforeend', renderPageNav('07-manage-tags'));
+}
+
+function card(name, desc, version, installed, providers=[], selected=false) {
+  const dot = installed ? '<span class="dot"></span>' : '';
+  const provHtml = providers.map(p => `<span class="tag tag-${p}">${p==='claude'?'Claude Code':'Codex'}</span>`).join('');
+  return `
+  <div class="skill-card${selected?' selected':''}" onclick="selectCard(this)">
+    <div class="skill-card-header">
+      <div class="skill-card-name">${dot}${name}</div>
+    </div>
+    <div class="skill-card-desc">${desc}</div>
+    <div class="skill-card-meta"><span class="tag tag-version">v${version}</span>${provHtml}</div>
+  </div>`;
+}
+
+function showTagInput(btn) {
+  const input = document.createElement('span');
+  input.className = 'tag-input-inline';
+  input.innerHTML = `<input type="text" placeholder="tag name" onkeydown="if(event.key==='Enter')addTag(this)" onblur="addTag(this)" autofocus />`;
+  btn.parentElement.insertBefore(input, btn);
+  btn.style.display = 'none';
+  input.querySelector('input').focus();
+}
+
+function addTag(input) {
+  const value = input.value.trim().toLowerCase();
+  const container = document.getElementById('tags-container');
+  const addBtn = container.querySelector('.tag-add-btn');
+
+  if (value) {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip user';
+    chip.innerHTML = `${value} <span class="remove" onclick="this.parentElement.remove()">${Icons.close}</span>`;
+    container.insertBefore(chip, input.parentElement);
+  }
+
+  input.parentElement.remove();
+  addBtn.style.display = '';
+}
+
+renderPage();
+</script>
+</body>
+</html>

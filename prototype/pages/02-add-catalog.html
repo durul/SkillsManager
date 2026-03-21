@@ -12,33 +12,12 @@
 <link rel="stylesheet" href="../components/skill-card.css">
 <link rel="stylesheet" href="../components/modal.css">
 <style>
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  padding: 40px;
-}
-.loading-spinner {
-  width: 40px; height: 40px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 16px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 14px; color: var(--text-secondary); }
-.loading-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-
-/* Step progress */
+/* Step progress bar */
 .step-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 16px 24px;
+  padding: 14px 24px;
   border-bottom: 1px solid var(--border);
 }
 .step-dot {
@@ -56,23 +35,31 @@
 .step-dot svg { width: 12px; height: 12px; }
 .step-dot.done { background: var(--green); border-color: var(--green); color: white; }
 .step-dot.active { background: var(--accent); border-color: var(--accent); color: white; }
-.step-line { flex: 1; height: 2px; background: var(--border); max-width: 40px; }
+.step-line { width: 40px; height: 2px; background: var(--border); }
 .step-line.done { background: var(--green); }
-.step-label { font-size: 12px; color: var(--text-muted); margin-left: 8px; }
+.step-label { font-size: 12px; color: var(--text-muted); margin-right: 8px; }
 .step-label.active { color: var(--text-primary); font-weight: 500; }
 
 /* Success banner */
 .success-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 24px;
+  gap: 10px;
+  padding: 10px 24px;
   background: var(--green-subtle);
   border-bottom: 1px solid rgba(34,197,94,0.2);
+  font-size: 13px;
 }
-.success-banner svg { width: 16px; height: 16px; color: var(--green); flex-shrink: 0; }
-.success-banner-text { font-size: 13px; color: var(--green); font-weight: 500; }
-.success-banner-sub { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+.success-banner .icon { color: var(--green); }
+.success-banner .text { color: var(--green); font-weight: 500; }
+.success-banner .right { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+
+/* Tags note */
+.tags-note {
+  padding: 10px 24px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
 </style>
 </head>
 <body>
@@ -82,50 +69,56 @@
 <script src="../components/icons.js"></script>
 <script src="../components/app-shell.js"></script>
 <script>
-// ===== JOURNEY 2: Add Catalog Flow =====
-// Step A: Modal to enter URL → Step B: Loading/cloning → Step C: Catalog loaded with skills
-
-let currentStep = 'result'; // 'modal', 'loading', 'result'
-
 function renderPage() {
-  // After adding catalog, sidebar shows it
+  // Sidebar with newly added catalog
   const sidebar = `
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h1>${Icons.book} Skills Manager</h1>
+      <h1>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        Skills Manager
+      </h1>
     </div>
     <div class="search-box">
-      ${Icons.search}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       <input type="text" placeholder="Search skills..." />
     </div>
     <div class="source-sections">
       <div class="source-section">
         <div class="source-header"><span>Installed</span><span class="count">0</span></div>
         <div class="nav-item" onclick="setActiveNav(this)">
-          ${Icons.folder} All Installed <span class="badge installed">0</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-7l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/></svg>
+          All Installed <span class="badge installed">0</span>
         </div>
       </div>
       <div class="source-section">
         <div class="source-header"><span>Catalogs</span><span class="count">1</span></div>
         <div class="nav-item active" onclick="setActiveNav(this)">
-          ${Icons.github} Anthropic Skills <span class="badge">24</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Anthropic Skills <span class="badge">24</span>
         </div>
       </div>
     </div>
     <div class="sidebar-footer">
       <button class="btn-add-catalog" onclick="showModal('modal-add-catalog')">
-        ${Icons.plus} Add Catalog
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+        Add Catalog
       </button>
     </div>
   </aside>`;
 
+  // Main content
+  const checkSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+  const downloadSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  const refreshSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
+
   const main = `
   <main class="main">
     <div class="step-bar">
-      <div class="step-dot done">${Icons.check}</div>
+      <div class="step-dot done">${checkSvg}</div>
       <div class="step-label">Add URL</div>
       <div class="step-line done"></div>
-      <div class="step-dot done">${Icons.check}</div>
+      <div class="step-dot done">${checkSvg}</div>
       <div class="step-label">Clone</div>
       <div class="step-line done"></div>
       <div class="step-dot active">3</div>
@@ -133,9 +126,9 @@ function renderPage() {
     </div>
 
     <div class="success-banner">
-      ${Icons.check}
-      <span class="success-banner-text">Catalog added successfully</span>
-      <span class="success-banner-sub">24 skills found in anthropics/skills</span>
+      <span class="icon">${checkSvg}</span>
+      <span class="text">Catalog added successfully</span>
+      <span class="right">24 skills found in anthropics/skills</span>
     </div>
 
     <div class="topbar" style="border-top:none;">
@@ -146,7 +139,7 @@ function renderPage() {
         </div>
       </div>
       <div class="topbar-right">
-        <button class="btn-icon" title="Refresh">${Icons.refresh}</button>
+        <button class="btn-icon" title="Refresh">${refreshSvg}</button>
       </div>
     </div>
 
@@ -160,23 +153,18 @@ function renderPage() {
       <div class="category-tab" onclick="selectTab(this)">ai <span style="color:var(--text-muted);font-size:10px;">2</span></div>
     </div>
 
-    <div style="padding:12px 24px 0;">
-      <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
-        ${Icons.book}
-        <span>Tags auto-detected from SKILL.md frontmatter</span>
-      </div>
-    </div>
+    <div class="tags-note">Tags auto-detected from SKILL.md frontmatter</div>
 
     <div class="content-area">
       <div class="skills-grid">
-        ${card('Swift Concurrency', 'Expert guidance on async/await, actors, Sendable, and Swift 6 migration.', '2.1.0', ['development', 'swift'])}
-        ${card('UI/UX Pro Max', '50+ design styles, 97 color palettes, and UX guidelines.', '1.5.0', ['design', 'ui'])}
-        ${card('TDD Chicago School', 'State-based TDD with emergent design. Chicago School principles.', '1.0.0', ['testing', 'tdd'])}
-        ${card('Xcode Cloud CI/CD', 'Manage Xcode Cloud workflows, trigger builds, check status.', '1.2.0', ['devops', 'ci'])}
-        ${card('Feature Development', 'Guided feature dev with codebase understanding and code review.', '3.0.0', ['development'])}
-        ${card('App Store Changelog', 'Generate release notes from git history and tags automatically.', '1.0.0', ['documentation'])}
-        ${card('Claude API', 'Build apps with Claude API and Anthropic SDK. Tool use, agents.', '2.0.0', ['ai', 'api'])}
-        ${card('SwiftUI Expert', 'State management, view composition, iOS 26+ Liquid Glass.', '1.3.0', ['development', 'swift'])}
+        ${card('Swift Concurrency', 'Expert guidance on async/await, actors, Sendable, and Swift 6 migration.', '2.1.0', ['development', 'swift'], downloadSvg)}
+        ${card('UI/UX Pro Max', '50+ design styles, 97 color palettes, and UX guidelines.', '1.5.0', ['design', 'ui'], downloadSvg)}
+        ${card('TDD Chicago School', 'State-based TDD with emergent design. Chicago School principles.', '1.0.0', ['testing', 'tdd'], downloadSvg)}
+        ${card('Xcode Cloud CI/CD', 'Manage Xcode Cloud workflows, trigger builds, check status.', '1.2.0', ['devops', 'ci'], downloadSvg)}
+        ${card('Feature Development', 'Guided feature dev with codebase understanding and code review.', '3.0.0', ['development'], downloadSvg)}
+        ${card('App Store Changelog', 'Generate release notes from git history and tags automatically.', '1.0.0', ['documentation'], downloadSvg)}
+        ${card('Claude API', 'Build apps with Claude API and Anthropic SDK. Tool use, agents.', '2.0.0', ['ai', 'api'], downloadSvg)}
+        ${card('SwiftUI Expert', 'State management, view composition, iOS 26+ Liquid Glass.', '1.3.0', ['development', 'swift'], downloadSvg)}
       </div>
     </div>
   </main>`;
@@ -186,22 +174,24 @@ function renderPage() {
   document.body.insertAdjacentHTML('beforeend', renderPageNav('02-add-catalog'));
 }
 
-function card(name, desc, version, tags) {
-  const tagHtml = tags.map(t => `<span class="tag tag-category">${t}</span>`).join('');
-  return `
-  <div class="skill-card" onclick="selectCard(this)">
-    <div class="skill-card-header">
-      <div class="skill-card-name">${name}</div>
-      <div class="skill-card-actions">
-        <button class="btn-icon" title="Install">${Icons.download}</button>
-      </div>
-    </div>
-    <div class="skill-card-desc">${desc}</div>
-    <div class="skill-card-meta">
-      <span class="tag tag-version">v${version}</span>
-      ${tagHtml}
-    </div>
-  </div>`;
+function card(name, desc, version, tags, dlIcon) {
+  var tagHtml = '';
+  for (var i = 0; i < tags.length; i++) {
+    tagHtml += '<span class="tag tag-category">' + tags[i] + '</span>';
+  }
+  return '<div class="skill-card" onclick="selectCard(this)">' +
+    '<div class="skill-card-header">' +
+      '<div class="skill-card-name">' + name + '</div>' +
+      '<div class="skill-card-actions">' +
+        '<button class="btn-icon" title="Install">' + dlIcon + '</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="skill-card-desc">' + desc + '</div>' +
+    '<div class="skill-card-meta">' +
+      '<span class="tag tag-version">v' + version + '</span>' +
+      tagHtml +
+    '</div>' +
+  '</div>';
 }
 
 renderPage();

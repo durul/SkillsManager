@@ -105,7 +105,7 @@
   <h1>SkillsManager UI Prototype</h1>
   <div class="subtitle">
     Complete user journey flow. Click each step to view the interactive prototype.<br>
-    Categories are auto-derived from a proposed <code style="background:var(--accent-subtle);padding:1px 5px;border-radius:3px;color:var(--accent);font-family:var(--font-mono);font-size:12px;">tags</code> field in SKILL.md frontmatter.
+    Tags come from two sources: auto-detected from SKILL.md frontmatter + custom user-added tags.
   </div>
 
   <div class="section-label">Getting Started</div>
@@ -178,12 +178,25 @@
     </a>
   </div>
 
+  <div class="section-label">Organization</div>
+
+  <div class="journey-flow">
+    <a class="journey-card" href="pages/07-manage-tags.html">
+      <div class="journey-num purple">7</div>
+      <div class="journey-info">
+        <div class="journey-title">Manage Tags</div>
+        <div class="journey-desc">Two tag sources: auto from SKILL.md (purple) + user-added custom tags (cyan). Inline add/remove. Both filter as tabs.</div>
+      </div>
+      <div class="journey-arrow">&rarr;</div>
+    </a>
+  </div>
+
   <div class="design-note">
-    <strong>Design Decision: Tags replace hardcoded categories.</strong><br>
-    The current SKILL.md frontmatter only has <code>name</code>, <code>description</code>, <code>version</code>.
-    This prototype proposes adding a <code>tags</code> field (e.g., <code>tags: development, swift, tdd</code>).
-    Category tabs are then auto-generated from all unique tags across skills in the current catalog.
-    No manual category management needed.
+    <strong>Design Decision: Two-source tag system.</strong><br>
+    The current SKILL.md frontmatter only has <code>name</code>, <code>description</code>, <code>version</code>. This prototype proposes:<br>
+    1. <strong style="color:#A855F7;">Auto tags</strong> (purple) &mdash; from a new <code>tags</code> field in SKILL.md frontmatter. Read-only for remote skills.<br>
+    2. <strong style="color:#06B6D4;">Custom tags</strong> (cyan) &mdash; user-added via the detail panel. Stored locally, won't modify the skill file.<br>
+    Both types appear as filter tabs. Users can organize any skill (even remote) into custom groups like "favorites" or "my-team".
   </div>
 </div>
 
