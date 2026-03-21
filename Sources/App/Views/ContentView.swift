@@ -190,7 +190,11 @@ struct ContentView: View {
                 SkillCardView(
                     skill: skill,
                     isSelected: library.selectedSkill?.listId == skill.listId,
-                    onSelect: { library.select(skill) }
+                    onSelect: { library.select(skill) },
+                    onInstall: {
+                        library.select(skill)
+                        showInstall = true
+                    }
                 )
             }
         }

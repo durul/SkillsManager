@@ -7,13 +7,14 @@ struct SkillCardView: View {
     let skill: Skill
     let isSelected: Bool
     let onSelect: () -> Void
+    var onInstall: (() -> Void)?
 
     @State private var isHovering = false
 
     var body: some View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: 0) {
-                // Header: name + installed dot
+                // Header: name + installed dot + download icon
                 HStack(alignment: .top) {
                     HStack(spacing: 8) {
                         if skill.isInstalled {
@@ -29,6 +30,21 @@ struct SkillCardView: View {
                     }
 
                     Spacer()
+
+                    // Download/install icon button
+                    Button {
+                        onInstall?()
+                    } label: {
+                        Image(systemName: "arrow.down.to.line")
+                            .font(.system(size: 11))
+                            .foregroundStyle(DS.Colors.textMuted)
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: DS.Radius.sm)
+                                    .stroke(DS.Colors.border, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.bottom, 10)
 

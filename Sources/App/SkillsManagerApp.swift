@@ -17,7 +17,7 @@ struct SkillsManagerApp: App {
             ContentView()
             #endif
         }
-        .windowStyle(.automatic)
+        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) { }
         }
