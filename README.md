@@ -6,43 +6,29 @@
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/Platform-macOS%2015-blue.svg)](https://developer.apple.com)
 
-A macOS application for discovering, browsing, and installing skills for AI coding assistants. Manage skills for Claude Code and Codex from GitHub repositories or your local filesystem.
+A macOS application for discovering, browsing, installing, and tagging skills for AI coding assistants. Manage skills for Claude Code and Codex from GitHub repositories or your local filesystem.
 
 <p align="center">
-  <img src="docs/screenshots/screenshot-home.png" alt="Skills Manager Home" width="700"/>
+  <img src="docs/screenshots/skillmanager.png" alt="Skills Manager" width="700"/>
 </p>
 <p align="center">
-  <em>Browse and manage skills from GitHub repositories</em>
-</p>
-
-### Install Skills
-
-<p align="center">
-  <img src="docs/screenshots/screenshot-skill-install.png" alt="Install Skill" width="700"/>
-</p>
-<p align="center">
-  <em>Install skills to Claude Code and/or Codex with one click</em>
-</p>
-
-### Edit & Preview Skill
-
-<p align="center">
-  <img src="docs/screenshots/screenshot-edit-preview.png" alt=" Edit & Preview Skill" width="700"/>
-</p>
-<p align="center">
-  <em>Edit skill files and preview documentation with markdown rendering</em>
+  <em>Browse, install, and tag skills for Claude Code and Codex</em>
 </p>
 
 ## Features
 
 - **Browse Remote Skills** - Discover skills from GitHub repositories like [anthropics/skills](https://github.com/anthropics/skills)
-- **View Local Skills** - See skills already installed on your system
-- **Multi-Repository Support** - Add and manage multiple GitHub skill repositories
-- **Install to Multiple Providers** - Install skills to Claude Code (`~/.claude/skills`) and/or Codex (`~/.codex/skills/public`)
-- **Provider Badges** - Visual indicators showing where each skill is installed
+- **Local Directory Support** - Add skills from any local directory via `file://` URLs
+- **View Installed Skills** - Filter by provider (Claude Code, Codex, or all)
+- **Multi-Repository Support** - Add and manage multiple GitHub skill catalogs
+- **Install to Multiple Providers** - Install skills to Claude Code and/or Codex
+- **Global Custom Tags** - Create tags to organize skills across all catalogs
+- **Tag-Based Filtering** - Filter skills by SKILL.md tags or your custom tags
 - **Markdown Rendering** - View skill documentation with full markdown support
-- **Search & Filter** - Quickly find skills by name or description
-- **Uninstall Support** - Remove skills from individual providers
+- **Split-Pane Editor** - Edit local skills with live markdown preview
+- **Uninstall / Unlink** - Unlink from a provider or fully uninstall
+- **Search** - Find skills by name, description, or tags
+- **Grid / List View** - Toggle between card grid and compact list views
 
 ## Providers
 
@@ -72,19 +58,25 @@ swift build -c release
 
 ## Usage
 
-Launch the app to browse available skills. Use the source dropdown to switch between:
+Launch the app to browse available skills. The three-column layout shows:
 
-- **Local** - Skills installed on your system
-- **Remote repositories** - Skills from configured GitHub repos
+- **Sidebar** - Navigate between installed skills, provider filters, and remote catalogs
+- **Main Content** - Browse skills in grid or list view with tag-based filtering
+- **Detail Panel** - View skill info, manage tags, install/uninstall
 
-Select a skill to view its details and documentation. Click "Install" to install a skill to your chosen providers.
+### Adding Catalogs
 
-### Adding Repositories
+1. Click "+ Add Catalog" in the sidebar footer
+2. Choose GitHub Repository or Local Directory
+3. Enter a URL (e.g., `https://github.com/anthropics/skills`) or browse for a folder
+4. Click "Add Catalog"
 
-1. Click the source dropdown
-2. Select "Add Repository..."
-3. Enter a GitHub URL (e.g., `https://github.com/anthropics/skills`)
-4. Click "Add"
+### Tagging Skills
+
+1. Select a skill to open the detail panel
+2. In the Tags section, click "+ add" to create a new tag
+3. Tags are global labels - once created, they appear in the filter bar across all views
+4. Purple tags come from SKILL.md frontmatter; cyan tags are your custom tags
 
 ## Development
 
@@ -123,28 +115,65 @@ tuist test
 
 > **Full documentation:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-Skills Manager uses a **layered architecture** with rich domain models:
+Skills Manager uses a **layered architecture** with rich domain models and SwiftUI Atomic Design:
 
 ```
-SkillLibrary (@Observable)
+SkillLibrary (@Observable, coordinator)
 ├── localCatalog: SkillsCatalog     ← Installed skills (claude + codex)
-└── remoteCatalogs: [SkillsCatalog] ← GitHub skill repositories
-    └── skills: [Skill]              ← Each catalog OWNS its skills
+├── remoteCatalogs: [SkillsCatalog] ← GitHub repos or local directories
+│   └── skills: [Skill]             ← Each catalog OWNS its skills
+└── skillTags: SkillTags            ← Global tag management aggregate
 ```
 
 | Layer | Location | Purpose |
 |-------|----------|---------|
-| **Domain** | `Sources/Domain/` | Rich models with behavior (SkillsCatalog, Skill) |
-| **Infrastructure** | `Sources/Infrastructure/` | Repositories, clients, parsers, installers |
-| **App** | `Sources/App/` | SwiftUI views consuming domain directly (no ViewModel) |
+| **Domain** | `Sources/Domain/` | Rich models (Skill, SkillsCatalog, SkillTags), protocols |
+| **Infrastructure** | `Sources/Infrastructure/` | Repositories, parsers, persistence |
+| **App** | `Sources/App/` | SwiftUI views (Atomic Design), coordinator, design tokens |
 
 ### Key Design Decisions
 
 - **Rich Domain Models** - Behavior encapsulated in models (not anemic data)
+- **Domain Aggregates** - SkillTags is an @Observable aggregate managing the tags feature
 - **Tell-Don't-Ask** - Objects manage their own state; callers tell objects what to do
 - **Protocol-Based DI** - `@Mockable` protocols for testability
 - **Chicago School TDD** - Test state changes, not interactions
 - **No ViewModel Layer** - Views consume domain models directly
+- **SwiftUI Atomic Design** - Atoms, Molecules, Organisms, Pages
+- **Design Tokens** - DS enum mirrors prototype CSS for consistent dark theme
+
+## Project Structure
+
+```
+SkillsManager/
+├── Sources/
+│   ├── Domain/
+│   │   ├── Models/          # Skill, SkillsCatalog, SkillTags, Provider, SkillEditor
+│   │   └── Protocols/       # SkillRepository, UserTagRepository, SkillInstaller (@Mockable)
+│   ├── Infrastructure/
+│   │   ├── Repositories/    # MergedSkillRepository
+│   │   ├── Local/           # LocalSkillRepository, LocalDirectorySkillRepository
+│   │   ├── Git/             # ClonedRepoSkillRepository
+│   │   ├── Parser/          # SkillParser (YAML frontmatter)
+│   │   ├── Installer/       # FileSystemSkillInstaller
+│   │   └── UserDefaultsUserTagRepository.swift
+│   └── App/
+│       ├── SkillLibrary.swift   # @Observable coordinator
+│       ├── Theme/               # DesignTokens (DS enum)
+│       └── Views/
+│           ├── ContentView.swift     # 3-column root layout
+│           ├── Sidebar/              # SidebarView, SkillCardView, SkillRowView
+│           ├── Detail/               # SkillDetailView, SkillEditorView, MarkdownView
+│           ├── Atoms/                # TagChip, EditableTagsView, FlowLayout, etc.
+│           ├── Molecules/            # CategoryTabsBar, StatsBar, ProviderLinkCard
+│           └── Sheets/               # AddCatalogSheet, InstallSheet, UninstallSheet
+├── Tests/
+│   ├── DomainTests/         # SkillTests, SkillTagsTests, SkillEditorTests
+│   ├── AppTests/            # SkillLibraryTests, SkillLibraryUserTagTests
+│   └── InfrastructureTests/ # Parser, repository, installer tests
+├── Project.swift            # Tuist configuration
+└── Package.swift            # SPM configuration
+```
 
 ## Release & Auto-Updates
 
@@ -161,11 +190,6 @@ swift build
 # Generate key pair
 ./scripts/sparkle-setup.sh
 ```
-
-The script will:
-1. Generate a public/private EdDSA key pair
-2. Optionally update `Info.plist` with the public key
-3. Display the private key to add as a GitHub secret
 
 ### Required GitHub Secrets
 
@@ -192,30 +216,6 @@ The release workflow will:
 4. Create DMG and ZIP artifacts
 5. Publish GitHub Release
 6. Update Sparkle appcast for auto-updates
-
-## Project Structure
-
-```
-SkillsManager/
-├── Sources/
-│   ├── Domain/
-│   │   ├── Models/          # Skill, SkillsCatalog (@Observable class), Provider
-│   │   └── Protocols/       # SkillRepository, SkillInstaller (@Mockable)
-│   ├── Infrastructure/
-│   │   ├── Repositories/    # LocalSkillRepository, ClonedRepo, MergedRepo
-│   │   ├── Local/           # ProviderPathResolver, LocalSkillWriter
-│   │   ├── Parser/          # SkillParser (YAML frontmatter)
-│   │   └── Installer/       # FileSystemSkillInstaller
-│   └── App/
-│       ├── Views/           # SwiftUI views (consume domain directly)
-│       └── SkillLibrary.swift   # @Observable coordinator for catalogs
-├── Tests/
-│   ├── DomainTests/         # SkillTests, SkillsCatalogTests
-│   ├── AppTests/            # SkillLibraryTests
-│   └── InfrastructureTests/
-├── Project.swift            # Tuist configuration
-└── Package.swift            # SPM configuration
-```
 
 ## License
 
