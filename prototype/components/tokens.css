@@ -1,0 +1,55 @@
+/* ===== DESIGN TOKENS ===== */
+:root {
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-card: #1E293B;
+  --bg-card-hover: #263549;
+  --bg-surface: #0F172A;
+  --bg-input: #0F172A;
+  --border: #334155;
+  --border-light: #475569;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --accent-subtle: rgba(59,130,246,0.12);
+  --green: #22C55E;
+  --green-subtle: rgba(34,197,94,0.12);
+  --orange: #F59E0B;
+  --orange-subtle: rgba(245,158,11,0.12);
+  --red: #EF4444;
+  --red-subtle: rgba(239,68,68,0.12);
+  --purple: #A855F7;
+  --purple-subtle: rgba(168,85,247,0.12);
+  --cyan: #06B6D4;
+  --cyan-subtle: rgba(6,182,212,0.12);
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --transition: 200ms ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* ===== ANIMATIONS ===== */
+@media (prefers-reduced-motion: no-preference) {
+  .skill-card { transition: all var(--transition); }
+  .nav-item { transition: all var(--transition); }
+}

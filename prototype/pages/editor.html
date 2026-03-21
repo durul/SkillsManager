@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../components/tokens.css">
+<link rel="stylesheet" href="../components/layout.css">
+<link rel="stylesheet" href="../components/buttons.css">
+<link rel="stylesheet" href="../components/sidebar.css">
+<link rel="stylesheet" href="../components/editor.css">
+<link rel="stylesheet" href="../components/modal.css">
+</head>
+<body>
+
+<div class="app" id="app-root"></div>
+
+<script src="../components/icons.js"></script>
+<script src="../components/app-shell.js"></script>
+<script>
+// ===== PAGE: Edit Local Skill =====
+function renderEditorPage() {
+  const sidebar = renderSidebar({ activeNav: 'all-installed' });
+
+  const main = `
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">Edit: Swift Concurrency</div>
+          <div class="topbar-subtitle">Local skill &mdash; ~/.claude/skills/swift-concurrency/</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-primary" style="flex:none;">${Icons.check} Save</button>
+      </div>
+    </div>
+
+    <div class="content-area" style="padding:0;">
+      <div class="editor-container" style="height:calc(100vh - 52px);">
+        <div class="editor-pane">
+          <div class="editor-pane-header">
+            <span>Editor</span>
+            <span class="modified">Modified</span>
+          </div>
+          <textarea class="editor-textarea"># Swift Concurrency Expert
+
+Expert guidance on Swift Concurrency best practices.
+
+## When to Use
+
+Trigger when developers mention:
+- \`async/await\` patterns
+- \`actors\` and actor isolation
+- \`@MainActor\` usage
+- \`Sendable\` conformance
+- Swift 6 strict concurrency
+
+## Key Patterns
+
+### Structured Concurrency
+\`\`\`swift
+try await withThrowingTaskGroup(of: Result.self) { group in
+    for item in items {
+        group.addTask { try await process(item) }
+    }
+    return try await group.reduce(into: []) { $0.append($1) }
+}
+\`\`\`
+
+### Actor Isolation
+\`\`\`swift
+actor DataStore {
+    private var cache: [String: Data] = [:]
+
+    func get(_ key: String) -> Data? { cache[key] }
+    func set(_ key: String, data: Data) { cache[key] = data }
+}
+\`\`\`</textarea>
+        </div>
+        <div class="editor-pane">
+          <div class="editor-pane-header">
+            <span>Preview</span>
+          </div>
+          <div class="preview-area">
+            <h1>Swift Concurrency Expert</h1>
+            <p>Expert guidance on Swift Concurrency best practices.</p>
+            <h2>When to Use</h2>
+            <p>Trigger when developers mention:</p>
+            <p>&bull; <code>async/await</code> patterns<br>&bull; <code>actors</code> and actor isolation<br>&bull; <code>@MainActor</code> usage<br>&bull; <code>Sendable</code> conformance<br>&bull; Swift 6 strict concurrency</p>
+            <h2>Key Patterns</h2>
+            <h2 style="font-size:14px;">Structured Concurrency</h2>
+            <pre><code>try await withThrowingTaskGroup(of: Result.self) { group in
+    for item in items {
+        group.addTask { try await process(item) }
+    }
+    return try await group.reduce(into: []) { $0.append($1) }
+}</code></pre>
+            <h2 style="font-size:14px;">Actor Isolation</h2>
+            <pre><code>actor DataStore {
+    private var cache: [String: Data] = [:]
+
+    func get(_ key: String) -> Data? { cache[key] }
+    func set(_ key: String, data: Data) { cache[key] = data }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>`;
+
+  document.getElementById('app-root').innerHTML = sidebar + main;
+  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
+  document.body.insertAdjacentHTML('beforeend', renderPageNav('editor'));
+}
+
+renderEditorPage();
+</script>
+</body>
+</html>

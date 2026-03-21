@@ -1,0 +1,82 @@
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+}
+.btn svg { width: 14px; height: 14px; }
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  flex: 1;
+  justify-content: center;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover {
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--red);
+}
+.btn-danger:hover {
+  background: var(--red-subtle);
+  border-color: var(--red);
+}
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-icon:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+.btn-icon svg { width: 14px; height: 14px; }
+
+/* Tags */
+.tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.tag-version {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.tag-category { background: var(--purple-subtle); color: var(--purple); }
+.tag-claude { background: var(--accent-subtle); color: var(--accent); }
+.tag-codex { background: var(--green-subtle); color: var(--green); }
+.tag-refs { background: var(--cyan-subtle); color: var(--cyan); }
+.tag-scripts { background: var(--orange-subtle); color: var(--orange); }
