@@ -1453,7 +1453,7 @@ body {
 </div>
 
 <!-- ===== PAGE NAV (for prototype navigation) ===== -->
-<div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;z-index:200;">
+<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:200;background:var(--bg-secondary);padding:6px 10px;border-radius:24px;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,0.4);">
   <button onclick="showPage('browse')" style="padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Browse</button>
   <button onclick="showPage('editor')" style="padding:6px 14px;background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Editor</button>
   <button onclick="showPage('install')" style="padding:6px 14px;background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Install</button>
