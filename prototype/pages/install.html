@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillsManager — Install Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../components/tokens.css">
+<link rel="stylesheet" href="../components/layout.css">
+<link rel="stylesheet" href="../components/buttons.css">
+<link rel="stylesheet" href="../components/sidebar.css">
+<link rel="stylesheet" href="../components/skill-card.css">
+<link rel="stylesheet" href="../components/detail-panel.css">
+<link rel="stylesheet" href="../components/modal.css">
+<style>
+/* Install-specific: provider selection in modal */
+.install-modal .provider-card { position: relative; }
+.install-modal .provider-card .checkbox {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+.install-modal .provider-card.checked .checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.install-modal .provider-card.checked .checkbox svg {
+  width: 12px; height: 12px; color: white;
+}
+.install-modal .provider-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.install-progress {
+  text-align: center;
+  padding: 24px;
+}
+.install-progress .spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.install-success {
+  text-align: center;
+  padding: 24px;
+}
+.install-success .check-circle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--green-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+.install-success .check-circle svg { width: 24px; height: 24px; color: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="app detail-open" id="app-root"></div>
+
+<script src="../components/icons.js"></script>
+<script src="../components/app-shell.js"></script>
+<script>
+// ===== PAGE: Install Flow =====
+// Shows: browsing a remote catalog -> selecting a skill -> install modal -> success
+
+function renderInstallPage() {
+  const sidebar = renderSidebar({ activeNav: 'anthropic' });
+
+  const main = `
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title">Anthropic Skills</div>
+          <div class="topbar-subtitle">24 skills available &mdash; github.com/anthropics/skills</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="view-toggle">
+          <button class="active" title="Grid view">${Icons.gridView}</button>
+          <button title="List view">${Icons.listView}</button>
+        </div>
+        <button class="btn-icon" title="Refresh">${Icons.refresh}</button>
+      </div>
+    </div>
+
+    <div class="category-tabs">
+      <div class="category-tab active" onclick="selectTab(this)">All</div>
+      <div class="category-tab" onclick="selectTab(this)">Development</div>
+      <div class="category-tab" onclick="selectTab(this)">Design</div>
+      <div class="category-tab" onclick="selectTab(this)">DevOps</div>
+      <div class="category-tab" onclick="selectTab(this)">Documentation</div>
+      <div class="category-tab" onclick="selectTab(this)">Testing</div>
+      <div class="category-tab" onclick="selectTab(this)">AI / LLM</div>
+    </div>
+
+    <div class="content-area">
+      <div class="skills-grid">
+        ${remoteCard({ name: 'SwiftUI Expert', desc: 'Best practices for state management, view composition, performance, and iOS 26+ Liquid Glass.', version: '1.3.0', category: 'Development', selected: true })}
+        ${remoteCard({ name: 'Xcode Cloud CI/CD', desc: 'Manage Xcode Cloud CI/CD workflows, trigger builds, check status, and monitor pipelines.', version: '1.2.0', category: 'DevOps' })}
+        ${remoteCard({ name: 'App Store Changelog', desc: 'Generate user-facing App Store release notes from git history and tags automatically.', version: '1.0.0', category: 'Documentation' })}
+        ${remoteCard({ name: 'iOS App Scaffold', desc: 'Scaffold iOS apps with Tuist and layered architecture (Domain, Infrastructure, App).', version: '2.0.0', category: 'Development' })}
+        ${remoteCard({ name: 'App Localization', desc: 'iOS/macOS localization management for Tuist projects with .strings validation.', version: '1.1.0', category: 'Development' })}
+        ${remoteCard({ name: 'Remotion Video', desc: 'Best practices for creating videos with React using the Remotion framework.', version: '1.0.0', category: 'Design' })}
+      </div>
+    </div>
+  </main>`;
+
+  // Detail panel for the selected remote skill (not installed)
+  const detail = `
+  <aside class="detail-panel">
+    <div class="detail-panel-header">
+      <div>
+        <div class="detail-name">SwiftUI Expert</div>
+        <div class="detail-source">${Icons.github} Anthropic Skills</div>
+      </div>
+      <button class="detail-close">${Icons.close}</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-section">
+        <div class="detail-section-title">Description</div>
+        <div class="detail-desc">Write, review, or improve SwiftUI code following best practices for state management, view composition, performance, modern APIs, Swift concurrency, and iOS 26+ Liquid Glass adoption.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Metadata</div>
+        <div class="detail-meta-grid">
+          <div class="detail-meta-item"><div class="detail-meta-label">Version</div><div class="detail-meta-value">1.3.0</div></div>
+          <div class="detail-meta-item"><div class="detail-meta-label">References</div><div class="detail-meta-value">2 files</div></div>
+          <div class="detail-meta-item"><div class="detail-meta-label">Scripts</div><div class="detail-meta-value">1 file</div></div>
+          <div class="detail-meta-item"><div class="detail-meta-label">Source</div><div class="detail-meta-value" style="font-size:11px;">GitHub</div></div>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Installation</div>
+        <div class="provider-cards">
+          <div class="provider-card">
+            <div class="provider-icon claude">C</div>
+            <div class="provider-info">
+              <div class="provider-name">Claude Code</div>
+              <div class="provider-path">~/.claude/skills/</div>
+            </div>
+            <span class="provider-status available">Available</span>
+          </div>
+          <div class="provider-card">
+            <div class="provider-icon codex">X</div>
+            <div class="provider-info">
+              <div class="provider-name">Codex</div>
+              <div class="provider-path">~/.codex/skills/</div>
+            </div>
+            <span class="provider-status available">Available</span>
+          </div>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Content Preview</div>
+        <div class="detail-content-preview">
+          <h3>When to Use</h3>
+          <p>Building new SwiftUI features, refactoring existing views, reviewing code quality, or adopting modern SwiftUI patterns.</p>
+          <h3>Key Topics</h3>
+          <p>State management with <code>@Observable</code>, view composition, <code>NavigationStack</code>, Liquid Glass for iOS 26+.</p>
+        </div>
+      </div>
+    </div>
+    <div class="detail-footer">
+      <button class="btn btn-primary" onclick="showInstallModal()">${Icons.download} Install to Providers</button>
+    </div>
+  </aside>`;
+
+  document.getElementById('app-root').innerHTML = sidebar + main + detail;
+  document.body.insertAdjacentHTML('beforeend', renderAddCatalogModal());
+  document.body.insertAdjacentHTML('beforeend', renderInstallModal());
+  document.body.insertAdjacentHTML('beforeend', renderPageNav('install'));
+}
+
+function remoteCard({ name, desc, version, category, selected }) {
+  return `
+  <div class="skill-card${selected ? ' selected' : ''}" onclick="selectCard(this)">
+    <div class="skill-card-header">
+      <div class="skill-card-name">${name}</div>
+      <div class="skill-card-actions">
+        <button class="btn-icon" title="Install" onclick="event.stopPropagation();showInstallModal()">${Icons.download}</button>
+      </div>
+    </div>
+    <div class="skill-card-desc">${desc}</div>
+    <div class="skill-card-meta">
+      <span class="tag tag-version">v${version}</span>
+      <span class="tag tag-category">${category}</span>
+    </div>
+  </div>`;
+}
+
+function renderInstallModal() {
+  return `
+  <div class="modal-overlay hidden" id="modal-install" onclick="if(event.target===this)hideModal('modal-install')">
+    <div class="modal install-modal" style="width:400px;">
+      <div class="modal-header">
+        <h2>Install SwiftUI Expert</h2>
+        <p>Select which providers to install this skill to</p>
+      </div>
+      <div class="modal-body" id="install-body">
+        <div class="provider-cards">
+          <div class="provider-card checked" onclick="this.classList.toggle('checked')">
+            <div class="provider-icon claude">C</div>
+            <div class="provider-info">
+              <div class="provider-name">Claude Code</div>
+              <div class="provider-path">~/.claude/skills/</div>
+            </div>
+            <div class="checkbox">${Icons.check}</div>
+          </div>
+          <div class="provider-card checked" onclick="this.classList.toggle('checked')">
+            <div class="provider-icon codex">X</div>
+            <div class="provider-info">
+              <div class="provider-name">Codex</div>
+              <div class="provider-path">~/.codex/skills/</div>
+            </div>
+            <div class="checkbox">${Icons.check}</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" id="install-footer">
+        <button class="btn btn-secondary" onclick="hideModal('modal-install')">Cancel</button>
+        <button class="btn btn-primary" style="flex:none;" onclick="simulateInstall()">${Icons.download} Install</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showInstallModal() {
+  // Reset to initial state
+  document.getElementById('install-body').innerHTML = `
+    <div class="provider-cards">
+      <div class="provider-card checked" onclick="this.classList.toggle('checked')">
+        <div class="provider-icon claude">C</div>
+        <div class="provider-info">
+          <div class="provider-name">Claude Code</div>
+          <div class="provider-path">~/.claude/skills/</div>
+        </div>
+        <div class="checkbox">${Icons.check}</div>
+      </div>
+      <div class="provider-card checked" onclick="this.classList.toggle('checked')">
+        <div class="provider-icon codex">X</div>
+        <div class="provider-info">
+          <div class="provider-name">Codex</div>
+          <div class="provider-path">~/.codex/skills/</div>
+        </div>
+        <div class="checkbox">${Icons.check}</div>
+      </div>
+    </div>`;
+  document.getElementById('install-footer').style.display = '';
+  showModal('modal-install');
+}
+
+function simulateInstall() {
+  // Show progress
+  document.getElementById('install-body').innerHTML = `
+    <div class="install-progress">
+      <div class="spinner"></div>
+      <div style="font-size:13px;color:var(--text-secondary);">Installing to Claude Code and Codex...</div>
+    </div>`;
+  document.getElementById('install-footer').style.display = 'none';
+
+  // After 1.5s, show success
+  setTimeout(() => {
+    document.getElementById('install-body').innerHTML = `
+      <div class="install-success">
+        <div class="check-circle">${Icons.check}</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Successfully Installed</div>
+        <div style="font-size:12px;color:var(--text-muted);">SwiftUI Expert is now available in Claude Code and Codex</div>
+      </div>`;
+    document.getElementById('install-footer').innerHTML = `
+      <button class="btn btn-primary" style="flex:none;" onclick="hideModal('modal-install')">Done</button>`;
+    document.getElementById('install-footer').style.display = '';
+  }, 1500);
+}
+
+renderInstallPage();
+</script>
+</body>
+</html>
