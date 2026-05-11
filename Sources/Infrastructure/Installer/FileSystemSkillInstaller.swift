@@ -151,6 +151,12 @@ public final class FileSystemSkillInstaller: SkillInstaller, @unchecked Sendable
             let sourceItemPath = "\(sourcePath)/\(item)"
             let targetItemPath = "\(targetPath)/\(item)"
 
+            // Reject symbolic links: a malicious skill repo could ship a symlink
+            // pointing outside the skill folder (e.g. ~/.ssh) and trick the recursive
+            // copy into pulling sensitive files into the installed skill directory.
+            let attributes = try fileManager.attributesOfItem(atPath: sourceItemPath)
+            if (attributes[.type] as? FileAttributeType) == .typeSymbolicLink { continue }
+
             var isDirectory: ObjCBool = false
             fileManager.fileExists(atPath: sourceItemPath, isDirectory: &isDirectory)
 
