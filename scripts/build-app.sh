@@ -8,8 +8,8 @@
 # app rather than a raw `swift run` executable.
 #
 # Usage:
-#   ./scripts/build-app.sh            # build only
-#   ./scripts/build-app.sh --open     # build, then `open` the app
+#   ./scripts/build-app.sh            # build, then `open` the app
+#   ./scripts/build-app.sh --no-open  # build only
 #
 
 set -euo pipefail
@@ -20,10 +20,11 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-OPEN_AFTER_BUILD=0
+OPEN_AFTER_BUILD=1
 for arg in "$@"; do
     case "$arg" in
-        --open) OPEN_AFTER_BUILD=1 ;;
+        --no-open) OPEN_AFTER_BUILD=0 ;;
+        --open) OPEN_AFTER_BUILD=1 ;;  # kept for back-compat; now the default
         -h|--help)
             sed -n '2,15p' "$0"
             exit 0
